@@ -1,0 +1,11 @@
+FROM confluentinc/cp-kafka-connect-base:latest
+LABEL maintainer="iaymendaoudidev@gmail.com"
+USER root
+
+COPY healthcheck.sh /etc/confluent/docker/healthcheck.sh
+RUN chmod +x /etc/confluent/docker/healthcheck.sh
+
+# Installing the MongoDB Kafka Connector
+RUN confluent-hub install --no-prompt mongodb/kafka-connect-mongodb:latest
+
+ENTRYPOINT ["/etc/confluent/docker/run"]

@@ -1,0 +1,9 @@
+FROM confluentinc/cp-server:latest
+LABEL maintainer="iaymendaoudidev@gmail.com"
+USER root
+
+COPY healthcheck.sh /etc/confluent/docker/healthcheck.sh
+
+RUN chmod +x /etc/confluent/docker/healthcheck.sh
+
+ENTRYPOINT ["/etc/confluent/docker/run"]

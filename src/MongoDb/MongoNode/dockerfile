@@ -1,0 +1,28 @@
+FROM mongo:latest
+LABEL maintainer="iaymendaoudidev@gmail.com"
+
+# Install Node.js and npm
+RUN apt-get update && apt-get install -y \
+    curl \
+    && curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
+    && apt-get install -y nodejs
+
+# Create app directory and initialize npm
+WORKDIR /usr/src/app
+RUN npm init -y && \
+    npm install uuid
+
+# Copy script for database initialization
+COPY mongo-init.js /docker-entrypoint-initdb.d/
+
+# Copy script for generating security key for inter replicas communication
+COPY keyfile_generator.sh /keyfile_generator.sh
+
+# Generating security key for inter replicas communication
+RUN /bin/bash /keyfile_generator.sh
+
+# Copy mongod configuration file
+COPY mongod.conf /etc/mongod.conf
+
+# Give mongodb user the ownership of the configuration file
+CMD chown -R mongodb:mongodb /etc/mongodb

@@ -1,0 +1,17 @@
+FROM mongo:latest
+LABEL maintainer="iaymendaoudidev@gmail.com"
+
+# Copy script for initializing replicaset
+COPY replicaset_initializer.sh /replicaset_initializer.sh
+
+# Assigning execution permission to the script
+RUN chmod +x /replicaset_initializer.sh
+
+# Copy healthcheck script
+COPY healthcheck.sh /healthcheck.sh
+
+# make healthcheck script executable
+RUN chmod +x /healthcheck.sh
+
+# Run replicaset script as entrypoint
+ENTRYPOINT ["/replicaset_initializer.sh"]

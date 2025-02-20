@@ -1,0 +1,10 @@
+FROM mongo-express:latest
+LABEL maintainer="iaymendaoudidev@gmail.com"
+
+# Copy healthcheck script
+COPY healthcheck.sh /healthcheck.sh
+
+# make healthcheck script executable
+RUN chmod +x /healthcheck.sh
+
+RUN apk upgrade; apk add curl
