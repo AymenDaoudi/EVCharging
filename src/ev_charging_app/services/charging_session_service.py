@@ -34,13 +34,20 @@ class ChargingSessionService:
             # End session
             self.end_charging_session(env, session_id, station_id, ev_id)
 
-    def start_charging_session(self, env, session_id, station_id, ev_id):
+    def start_charging_session(self, env, session_id: uuid.UUID, station_id: str, ev_id: str):
 
         start_message = ChargingMessage(
             event_type="start",
+            session_id=str(session_id),
             station_id=station_id,
             ev_id=ev_id,
-            payload={"session_id": str(session_id), "start_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+            payload={
+                "event_type": "start",
+                "session_id": str(session_id), 
+                "station_id": station_id,
+                "ev_id": ev_id,
+                "start_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            }
         )
         self.kafka_repository.publish(start_message, CHARGING_EVENTS_TOPIC)
 
@@ -48,9 +55,16 @@ class ChargingSessionService:
 
         end_message = ChargingMessage(
             event_type="end",
+            session_id=str(session_id),
             station_id=station_id,
             ev_id=ev_id,
-            payload={"session_id": str(session_id), "end_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+            payload={
+                "event_type": "end",
+                "session_id": str(session_id),
+                "station_id": station_id,
+                "ev_id": ev_id,
+                "end_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            }
         )   
         self.kafka_repository.publish(end_message, CHARGING_EVENTS_TOPIC)
         
@@ -71,10 +85,14 @@ class ChargingSessionService:
             
             progress_message = ChargingMessage(
                 event_type="progress",
+                session_id=str(session_id),
                 station_id=station_id,
                 ev_id=ev_id,
                 payload={
+                    "event_type": "progress",
                     "session_id": str(session_id),
+                    "station_id": station_id,
+                    "ev_id": ev_id,
                     "current_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                     "progress_percent": round(progress * 100, 2)
                 }
