@@ -13,12 +13,12 @@ ENV PYTHONPATH=/app
 WORKDIR /app
 
 # Copy your application code
-COPY ./simulation ./simulation
+COPY ./app ./app
 COPY ./services ./services
 COPY ./repositories ./repositories
 COPY ./entities ./entities
 
-RUN pip install --no-cache-dir -r ./simulation/requirements.txt
+RUN pip install --no-cache-dir -r ./app/requirements.txt
 
 # Set the entrypoint / default command to run
-CMD ["python", "simulation/main.py"]
+CMD ["python", "app/main.py"]
