@@ -1,0 +1,53 @@
+FROM bitnami/spark:latest
+
+# Install curl and set up permissions
+USER root
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+
+# Set up environment variables
+ENV SPARK_HOME=/opt/bitnami/spark
+ENV PATH="$SPARK_HOME/bin:$PATH"
+ENV KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+ENV CHARGING_EVENTS_TOPIC=ev_charging_events
+
+# Network configuration
+ENV SPARK_NETWORK_TIMEOUT=800s
+ENV SPARK_RPC_MESSAGE_MAXSIZE=1024
+ENV SPARK_DRIVER_MAXRESULTSIZE=2g
+ENV SPARK_WORKER_MEMORY=2g
+ENV SPARK_EXECUTOR_MEMORY=2g
+
+# Create work directory
+WORKDIR $SPARK_HOME
+
+# Copy Kafka dependencies
+RUN mkdir -p $SPARK_HOME/jars && \
+    curl -o $SPARK_HOME/jars/spark-sql-kafka-0-10_2.12-3.3.0.jar \
+        https://repo1.maven.org/maven2/org/apache/spark/spark-sql-kafka-0-10_2.12/3.3.0/spark-sql-kafka-0-10_2.12-3.3.0.jar && \
+    curl -o $SPARK_HOME/jars/kafka-clients-3.3.0.jar \
+        https://repo1.maven.org/maven2/org/apache/kafka/kafka-clients/3.3.0/kafka-clients-3.3.0.jar && \
+    curl -o $SPARK_HOME/jars/spark-token-provider-kafka-0-10_2.12-3.3.0.jar \
+        https://repo1.maven.org/maven2/org/apache/spark/spark-token-provider-kafka-0-10_2.12/3.3.0/spark-token-provider-kafka-0-10_2.12-3.3.0.jar && \
+    curl -o $SPARK_HOME/jars/commons-pool2-2.11.1.jar \
+        https://repo1.maven.org/maven2/org/apache/commons/commons-pool2/2.11.1/commons-pool2-2.11.1.jar
+
+# Create directory for scripts
+RUN mkdir -p /opt/bitnami/spark/scripts
+
+# Copy the Kafka Spark Streaming script and startup script
+COPY ./spark-app/spark_kafka_streaming.py $SPARK_HOME/scripts/
+COPY ./spark-app/start-master.sh $SPARK_HOME/scripts/
+
+# Set proper permissions
+RUN chmod +x $SPARK_HOME/scripts/start-master.sh && \
+    chown -R 1001:root $SPARK_HOME/scripts/ && \
+    chown -R 1001:root $SPARK_HOME/jars/
+
+# Switch back to non-root user
+USER 1001
+
+# Expose necessary ports
+EXPOSE 7077 8080 4040
+
+# Use the startup script as the entry point
+CMD ["/opt/bitnami/spark/scripts/start-master.sh"]

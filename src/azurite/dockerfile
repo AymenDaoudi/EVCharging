@@ -1,0 +1,17 @@
+FROM mcr.microsoft.com/azure-cli:latest
+LABEL maintainer="iaymendaoudidev@gmail.com"
+
+# Copy script for initializing azurite
+COPY initialize-azurite.sh /initialize-azurite.sh
+
+# Assigning execution permission to the script
+RUN chmod +x /initialize-azurite.sh
+
+# Copy healthcheck script
+COPY healthcheck.sh /healthcheck.sh
+
+# make healthcheck script executable
+RUN chmod +x /healthcheck.sh
+
+# Run azurite script as entrypoint
+ENTRYPOINT ["/initialize-azurite.sh"]

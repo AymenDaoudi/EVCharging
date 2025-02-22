@@ -322,6 +322,85 @@ services:
     networks:
       - localnet
 
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite:latest
+    container_name: "azurite"
+    hostname: azurite
+    environment:
+      - AZURITE_ACCOUNTS=datalake:Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==
+    depends_on:
+      db-replicaset:
+        condition: service_healthy
+    restart: always
+    ports:
+      - "10010:10000"
+    healthcheck:
+      test: nc 127.0.0.1 10000 -z
+      interval: 1s
+      retries: 30
+    networks:
+      - localnet
+
+  azurite-init:
+    build:
+      context: ./azurite
+      dockerfile: dockerfile
+    container_name: "azurite-init"
+    depends_on:
+      azurite:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "/healthcheck.sh"]
+      interval: 10s
+      timeout: 10s
+      retries: 3
+    networks:
+      - localnet
+
+  spark-master:
+    build:
+      context: ./spark
+      dockerfile: dockerfile_master
+    container_name: spark-master
+    environment:
+      - SPARK_MODE=master
+      - SPARK_MASTER_HOST=spark-master
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+      - CHARGING_EVENTS_TOPIC=ev_charging_events
+      - SPARK_SUBMIT_OPTIONS=--conf spark.driver.memory=2g
+      - SPARK_RPC_MESSAGE_MAXSIZE=1024
+      - SPARK_NETWORK_TIMEOUT=300s
+      - SPARK_DRIVER_EXTRA_JAVA_OPTIONS=-Dspark.maxRemoteBlockSizeFetchToMem=200m
+      - SPARK_DRIVER_MAXRESULTSIZE=2g
+      - SPARK_WORKER_MEMORY=2g
+      - SPARK_EXECUTOR_MEMORY=2g
+    depends_on:
+      kafka:
+        condition: service_healthy
+    ports:
+      - "8080:8080"  # Spark Web UI
+      - "7077:7077"  # Spark Master Port
+    networks:
+      - localnet
+
+  spark-worker:
+    build:
+      context: ./spark
+      dockerfile: dockerfile_worker
+    container_name: spark-worker
+    depends_on:
+      - spark-master
+    environment:
+      - SPARK_MODE=worker
+      - SPARK_MASTER_URL=spark://spark-master:7077
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+      - CHARGING_EVENTS_TOPIC=ev_charging_events
+      - SPARK_WORKER_MEMORY=2g
+    ports:
+      - "8081:8081"  # Spark Worker Web UI
+    networks:
+      - localnet
+
 networks:
   localnet:
     driver: bridge
