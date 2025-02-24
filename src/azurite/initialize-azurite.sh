@@ -12,12 +12,19 @@ echo "##############################################"
 
 # Create the blob container
 az storage container create \
-    --name test-container \
+    --name raw-data \
     --connection-string 'DefaultEndpointsProtocol=http;AccountName=datalake;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/datalake'
 
+az storage container create \
+    --name processed-data \
+    --connection-string 'DefaultEndpointsProtocol=http;AccountName=datalake;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/datalake'
+
+az storage container create \
+    --name checkpoints \
+    --connection-string 'DefaultEndpointsProtocol=http;AccountName=datalake;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/datalake'
 
 echo "##############################################"
-echo "test-container created successfully ..."
+echo "raw-data container created successfully ..."
 echo "##############################################"
 
 tail -f /dev/null

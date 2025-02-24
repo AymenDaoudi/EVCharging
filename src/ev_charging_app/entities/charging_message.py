@@ -10,4 +10,4 @@ class ChargingMessage:
     session_id: str
     station_id: str
     ev_id: str
-    payload: dict[str, Any] 
+    payload: dict[str, Any]

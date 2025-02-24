@@ -1,0 +1,47 @@
+FROM treeverse/lakefs:latest
+
+ENV LAKEFS_AUTH_ENCRYPT_SECRET_KEY=some-random-secret-string
+ENV LAKEFS_DATABASE_TYPE=local
+ENV LAKEFS_AUTH_USER_NAME=admin
+ENV LAKEFS_AUTH_USER_EMAIL=iaymendaoudidev@gmail.com
+ENV LAKEFS_AUTH_USER_PASSWORD=pass
+ENV LAKECTL_CREDENTIALS_ACCESS_KEY_ID=AKIAJBWUDLDFGJY36X3Q
+ENV LAKECTL_CREDENTIALS_SECRET_ACCESS_KEY=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
+ENV LAKEFS_SERVER_ENDPOINT_URL=http://localhost:8000
+ENV LAKEFS_INSTALLATION_USER_NAME=admin
+ENV LAKEFS_INSTALLATION_USER_EMAIL=iaymendaoudidev@gmail.com
+ENV LAKEFS_INSTALLATION_USER_PASSWORD=pass
+ENV LAKEFS_INSTALLATION_ACCESS_KEY_ID=AKIAJBWUDLDFGJY36X3Q
+ENV LAKEFS_INSTALLATION_SECRET_ACCESS_KEY=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
+
+# Configure MinIO block adapter
+ENV LAKEFS_BLOCKSTORE_TYPE=s3
+ENV LAKEFS_BLOCKSTORE_S3_FORCE_PATH_STYLE=true
+ENV LAKEFS_BLOCKSTORE_S3_ENDPOINT=http://minio:9000
+ENV LAKEFS_BLOCKSTORE_S3_CREDENTIALS_ACCESS_KEY_ID=minioadmin
+ENV LAKEFS_BLOCKSTORE_S3_CREDENTIALS_SECRET_ACCESS_KEY=minioadmin
+ENV AWS_REGION=us-east-1
+
+# Switch to root to modify files and install curl
+USER root
+
+# Create data directory
+RUN mkdir -p /lakefs/data && chown -R lakefs:lakefs /lakefs
+
+# Install curl using Alpine package manager
+RUN apk add --no-cache curl
+
+# Set the working directory
+WORKDIR /app
+
+# Copy the entrypoint script
+COPY entrypoint.sh /entrypoint.sh
+
+# Make the script executable
+RUN chmod +x /entrypoint.sh
+
+# Switch back to lakefs user
+USER lakefs
+
+# Use the entrypoint script
+ENTRYPOINT ["/bin/sh", "/entrypoint.sh"]

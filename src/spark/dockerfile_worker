@@ -12,8 +12,9 @@ WORKDIR $SPARK_HOME
 USER root
 RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 
-# Copy Kafka dependencies
+# Download dependencies
 RUN mkdir -p $SPARK_HOME/jars && \
+    # Kafka dependencies
     curl -o $SPARK_HOME/jars/spark-sql-kafka-0-10_2.12-3.3.0.jar \
         https://repo1.maven.org/maven2/org/apache/spark/spark-sql-kafka-0-10_2.12/3.3.0/spark-sql-kafka-0-10_2.12-3.3.0.jar && \
     curl -o $SPARK_HOME/jars/kafka-clients-3.3.0.jar \
@@ -21,7 +22,19 @@ RUN mkdir -p $SPARK_HOME/jars && \
     curl -o $SPARK_HOME/jars/spark-token-provider-kafka-0-10_2.12-3.3.0.jar \
         https://repo1.maven.org/maven2/org/apache/spark/spark-token-provider-kafka-0-10_2.12/3.3.0/spark-token-provider-kafka-0-10_2.12-3.3.0.jar && \
     curl -o $SPARK_HOME/jars/commons-pool2-2.11.1.jar \
-        https://repo1.maven.org/maven2/org/apache/commons/commons-pool2/2.11.1/commons-pool2-2.11.1.jar
+        https://repo1.maven.org/maven2/org/apache/commons/commons-pool2/2.11.1/commons-pool2-2.11.1.jar && \
+    # Azure Storage dependencies
+    curl -o $SPARK_HOME/jars/hadoop-azure-3.3.1.jar \
+        https://repo1.maven.org/maven2/org/apache/hadoop/hadoop-azure/3.3.1/hadoop-azure-3.3.1.jar && \
+    curl -o $SPARK_HOME/jars/azure-storage-8.6.6.jar \
+        https://repo1.maven.org/maven2/com/microsoft/azure/azure-storage/8.6.6/azure-storage-8.6.6.jar && \
+    curl -o $SPARK_HOME/jars/azure-keyvault-core-1.0.0.jar \
+        https://repo1.maven.org/maven2/com/microsoft/azure/azure-keyvault-core/1.0.0/azure-keyvault-core-1.0.0.jar && \
+    # Jetty dependencies
+    curl -o $SPARK_HOME/jars/jetty-util-9.4.48.v20220622.jar \
+        https://repo1.maven.org/maven2/org/eclipse/jetty/jetty-util/9.4.48.v20220622/jetty-util-9.4.48.v20220622.jar && \
+    curl -o $SPARK_HOME/jars/jetty-util-ajax-9.4.48.v20220622.jar \
+        https://repo1.maven.org/maven2/org/eclipse/jetty/jetty-util-ajax/9.4.48.v20220622/jetty-util-ajax-9.4.48.v20220622.jar
 
 # Set proper permissions
 RUN chown -R 1001:root $SPARK_HOME/jars/

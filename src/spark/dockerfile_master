@@ -16,12 +16,16 @@ ENV SPARK_RPC_MESSAGE_MAXSIZE=1024
 ENV SPARK_DRIVER_MAXRESULTSIZE=2g
 ENV SPARK_WORKER_MEMORY=2g
 ENV SPARK_EXECUTOR_MEMORY=2g
+ENV AZURE_STORAGE_ACCOUNT=datalake
+ENV AZURE_STORAGE_ACCESS_KEY=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==
+ENV AZURE_STORAGE_ENDPOINT=http://azurite:10000
 
 # Create work directory
 WORKDIR $SPARK_HOME
 
-# Copy Kafka dependencies
+# Download dependencies
 RUN mkdir -p $SPARK_HOME/jars && \
+    # Kafka dependencies
     curl -o $SPARK_HOME/jars/spark-sql-kafka-0-10_2.12-3.3.0.jar \
         https://repo1.maven.org/maven2/org/apache/spark/spark-sql-kafka-0-10_2.12/3.3.0/spark-sql-kafka-0-10_2.12-3.3.0.jar && \
     curl -o $SPARK_HOME/jars/kafka-clients-3.3.0.jar \
@@ -29,7 +33,24 @@ RUN mkdir -p $SPARK_HOME/jars && \
     curl -o $SPARK_HOME/jars/spark-token-provider-kafka-0-10_2.12-3.3.0.jar \
         https://repo1.maven.org/maven2/org/apache/spark/spark-token-provider-kafka-0-10_2.12/3.3.0/spark-token-provider-kafka-0-10_2.12-3.3.0.jar && \
     curl -o $SPARK_HOME/jars/commons-pool2-2.11.1.jar \
-        https://repo1.maven.org/maven2/org/apache/commons/commons-pool2/2.11.1/commons-pool2-2.11.1.jar
+        https://repo1.maven.org/maven2/org/apache/commons/commons-pool2/2.11.1/commons-pool2-2.11.1.jar && \
+    # Azure Storage dependencies
+    curl -o $SPARK_HOME/jars/hadoop-azure-3.3.1.jar \
+        https://repo1.maven.org/maven2/org/apache/hadoop/hadoop-azure/3.3.1/hadoop-azure-3.3.1.jar && \
+    curl -o $SPARK_HOME/jars/azure-storage-8.6.6.jar \
+        https://repo1.maven.org/maven2/com/microsoft/azure/azure-storage/8.6.6/azure-storage-8.6.6.jar && \
+    curl -o $SPARK_HOME/jars/azure-keyvault-core-1.0.0.jar \
+        https://repo1.maven.org/maven2/com/microsoft/azure/azure-keyvault-core/1.0.0/azure-keyvault-core-1.0.0.jar && \
+    # Jetty dependencies
+    curl -o $SPARK_HOME/jars/jetty-util-9.4.48.v20220622.jar \
+        https://repo1.maven.org/maven2/org/eclipse/jetty/jetty-util/9.4.48.v20220622/jetty-util-9.4.48.v20220622.jar && \
+    curl -o $SPARK_HOME/jars/jetty-util-ajax-9.4.48.v20220622.jar \
+        https://repo1.maven.org/maven2/org/eclipse/jetty/jetty-util-ajax/9.4.48.v20220622/jetty-util-ajax-9.4.48.v20220622.jar && \
+    # AWS Hadoop dependencies
+    curl -o $SPARK_HOME/jars/hadoop-aws-3.3.1.jar \
+        https://repo1.maven.org/maven2/org/apache/hadoop/hadoop-aws/3.3.1/hadoop-aws-3.3.1.jar && \
+    curl -o $SPARK_HOME/jars/aws-java-sdk-bundle-1.11.1026.jar \
+        https://repo1.maven.org/maven2/com/amazonaws/aws-java-sdk-bundle/1.11.1026/aws-java-sdk-bundle-1.11.1026.jar
 
 # Create directory for scripts
 RUN mkdir -p /opt/bitnami/spark/scripts

@@ -322,41 +322,6 @@ services:
     networks:
       - localnet
 
-  azurite:
-    image: mcr.microsoft.com/azure-storage/azurite:latest
-    container_name: "azurite"
-    hostname: azurite
-    environment:
-      - AZURITE_ACCOUNTS=datalake:Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==
-    depends_on:
-      db-replicaset:
-        condition: service_healthy
-    restart: always
-    ports:
-      - "10010:10000"
-    healthcheck:
-      test: nc 127.0.0.1 10000 -z
-      interval: 1s
-      retries: 30
-    networks:
-      - localnet
-
-  azurite-init:
-    build:
-      context: ./azurite
-      dockerfile: dockerfile
-    container_name: "azurite-init"
-    depends_on:
-      azurite:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "/healthcheck.sh"]
-      interval: 10s
-      timeout: 10s
-      retries: 3
-    networks:
-      - localnet
-
   spark-master:
     build:
       context: ./spark
@@ -369,11 +334,14 @@ services:
       - CHARGING_EVENTS_TOPIC=ev_charging_events
       - SPARK_SUBMIT_OPTIONS=--conf spark.driver.memory=2g
       - SPARK_RPC_MESSAGE_MAXSIZE=1024
-      - SPARK_NETWORK_TIMEOUT=300s
+      - SPARK_NETWORK_TIMEOUT=60s
       - SPARK_DRIVER_EXTRA_JAVA_OPTIONS=-Dspark.maxRemoteBlockSizeFetchToMem=200m
       - SPARK_DRIVER_MAXRESULTSIZE=2g
       - SPARK_WORKER_MEMORY=2g
       - SPARK_EXECUTOR_MEMORY=2g
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin
+      - MINIO_ENDPOINT=http://minio:9000
     depends_on:
       kafka:
         condition: service_healthy
@@ -398,6 +366,68 @@ services:
       - SPARK_WORKER_MEMORY=2g
     ports:
       - "8081:8081"  # Spark Worker Web UI
+    networks:
+      - localnet
+
+  minio:
+    image: minio/minio:latest
+    container_name: minio
+    environment:
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin
+    command: server --console-address ":9001" /data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "9000:9000"  # API
+      - "9001:9001"  # Console
+    networks:
+      - localnet
+
+  minio-setup:
+    image: minio/mc
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set myminio http://minio:9000 minioadmin minioadmin;
+      mc mb myminio/raw-data;
+      mc mb myminio/checkpoints;
+      exit 0;
+      "
+    networks:
+      - localnet
+
+  lakefs:
+    build:
+      context: ./lakefs
+      dockerfile: dockerfile
+    container_name: lakefs
+    ports:
+      - "8000:8000"
+    environment:
+      - LAKECTL_SERVER_ENDPOINT_URL=http://localhost:8000
+      - LAKEFS_AUTH_ENCRYPT_SECRET_KEY=some-random-secret-string
+      - LAKEFS_DATABASE_TYPE=local
+      - LAKEFS_BLOCKSTORE_TYPE=s3
+      - LAKEFS_BLOCKSTORE_S3_FORCE_PATH_STYLE=true
+      - LAKEFS_AUTH_USER_NAME=admin
+      - LAKEFS_AUTH_USER_EMAIL=iaymendaoudidev@gmail.com
+      - LAKEFS_AUTH_USER_PASSWORD=pass
+      - LAKEFS_INSTALLATION_USER_NAME=admin
+      - LAKEFS_INSTALLATION_USER_EMAIL=iaymendaoudidev@gmail.com
+      - LAKEFS_INSTALLATION_USER_PASSWORD=pass
+      - LAKEFS_INSTALLATION_ACCESS_KEY_ID=AKIAJBWUDLDFGJY36X3Q
+      - LAKEFS_INSTALLATION_SECRET_ACCESS_KEY=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
+      - LAKECTL_CREDENTIALS_ACCESS_KEY_ID=AKIAJBWUDLDFGJY36X3Q
+      - LAKECTL_CREDENTIALS_SECRET_ACCESS_KEY=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
+    depends_on:
+      minio:
+        condition: service_healthy
     networks:
       - localnet
 
