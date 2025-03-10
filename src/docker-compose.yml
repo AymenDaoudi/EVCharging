@@ -216,26 +216,6 @@ services:
     networks:
       - localnet
     
-  # schema-registry:
-  #   image: confluentinc/cp-schema-registry:latest
-  #   hostname: schema-registry
-  #   container_name: schema-registry
-  #   depends_on:
-  #     kafka:
-  #       condition: service_healthy
-  #   ports:
-  #     - "8081:8081"
-  #   restart: always
-  #   env_file:
-  #     - path: ./Kafka/kafka-schema-registry/.env
-  #   healthcheck:
-  #     test: ["CMD-SHELL", "curl --silent --fail http://localhost:8081/subjects || exit 1"]
-  #     interval: 10s
-  #     timeout: 20s
-  #     retries: 5
-  #   networks:
-  #     - localnet
-
   kafka-connect:
     build: 
       context: ./Kafka/kafka-connect/
@@ -291,42 +271,6 @@ services:
       - path: ./Kafka/kafka-control-center/.env
     networks:
       - localnet
-
-  clickhouse:
-    build:
-      context: ./ClickHouse
-      dockerfile: dockerfile
-    container_name: clickhouse
-    ports:
-      - "8123:8123"  # HTTP interface
-      - "9000:9000"  # Native client interface
-    volumes:
-      - clickhouse_data:/var/lib/clickhouse
-    environment:
-      - CLICKHOUSE_USER=default
-      - CLICKHOUSE_PASSWORD=clickhouse
-      - CLICKHOUSE_DB=ev_charging
-    restart: always
-    healthcheck:
-      test: wget --no-verbose --tries=1 --spider http://localhost:8123/ping || exit 1
-      interval: 5s
-      timeout: 3s
-      retries: 3
-    networks:
-      - localnet
-
-  # rest-proxy:
-  #   image: confluentinc/cp-kafka-rest:latest
-  #   depends_on:
-  #     - broker
-  #     - schema-registry
-  #   ports:
-  #     - 8084:8084
-  #   restart: always
-  #   hostname: rest-proxy
-  #   container_name: rest-proxy
-  #   env_file:
-  #     - path: ./kafka-rest-proxy/.env
 
   charging-stations:
     build:
