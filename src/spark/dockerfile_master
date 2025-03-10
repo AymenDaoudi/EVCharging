@@ -16,12 +16,19 @@ ENV SPARK_RPC_MESSAGE_MAXSIZE=1024
 ENV SPARK_DRIVER_MAXRESULTSIZE=2g
 ENV SPARK_WORKER_MEMORY=2g
 ENV SPARK_EXECUTOR_MEMORY=2g
-ENV AZURE_STORAGE_ACCOUNT=datalake
-ENV AZURE_STORAGE_ACCESS_KEY=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==
-ENV AZURE_STORAGE_ENDPOINT=http://azurite:10000
+ENV LAKEFS_REPOSITORY=charging-data
+ENV LAKECTL_CREDENTIALS_ACCESS_KEY_ID=AKIAJBWUDLDFGJY36X3Q
+ENV LAKECTL_CREDENTIALS_SECRET_ACCESS_KEY=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
+ENV LAKEFS_ENDPOINT=http://lakefs:8000
+ENV LAKEFS_ACCESS_KEY=AKIAJBWUDLDFGJY36X3Q
+ENV LAKEFS_SECRET_KEY=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
 
 # Create work directory
 WORKDIR $SPARK_HOME
+
+# Install Python packages
+COPY ./spark-app/requirements.txt /tmp/requirements.txt
+RUN pip install --no-cache-dir -r /tmp/requirements.txt
 
 # Download dependencies
 RUN mkdir -p $SPARK_HOME/jars && \
@@ -50,13 +57,17 @@ RUN mkdir -p $SPARK_HOME/jars && \
     curl -o $SPARK_HOME/jars/hadoop-aws-3.3.1.jar \
         https://repo1.maven.org/maven2/org/apache/hadoop/hadoop-aws/3.3.1/hadoop-aws-3.3.1.jar && \
     curl -o $SPARK_HOME/jars/aws-java-sdk-bundle-1.11.1026.jar \
-        https://repo1.maven.org/maven2/com/amazonaws/aws-java-sdk-bundle/1.11.1026/aws-java-sdk-bundle-1.11.1026.jar
+        https://repo1.maven.org/maven2/com/amazonaws/aws-java-sdk-bundle/1.11.1026/aws-java-sdk-bundle-1.11.1026.jar && \
+    # LakeFS dependencies
+    curl -o $SPARK_HOME/jars/hadoop-lakefs-assembly-0.2.4.jar \
+        https://github.com/treeverse/lakeFS/releases/download/v0.1.13/hadoop-lakefs-assembly-0.2.4.jar
 
 # Create directory for scripts
 RUN mkdir -p /opt/bitnami/spark/scripts
 
 # Copy the Kafka Spark Streaming script and startup script
 COPY ./spark-app/spark_kafka_streaming.py $SPARK_HOME/scripts/
+COPY ./spark-app/lakefs_manager.py $SPARK_HOME/scripts/
 COPY ./spark-app/start-master.sh $SPARK_HOME/scripts/
 
 # Set proper permissions

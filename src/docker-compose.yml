@@ -292,6 +292,29 @@ services:
     networks:
       - localnet
 
+  clickhouse:
+    build:
+      context: ./ClickHouse
+      dockerfile: dockerfile
+    container_name: clickhouse
+    ports:
+      - "8123:8123"  # HTTP interface
+      - "9000:9000"  # Native client interface
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+    environment:
+      - CLICKHOUSE_USER=default
+      - CLICKHOUSE_PASSWORD=clickhouse
+      - CLICKHOUSE_DB=ev_charging
+    restart: always
+    healthcheck:
+      test: wget --no-verbose --tries=1 --spider http://localhost:8123/ping || exit 1
+      interval: 5s
+      timeout: 3s
+      retries: 3
+    networks:
+      - localnet
+
   # rest-proxy:
   #   image: confluentinc/cp-kafka-rest:latest
   #   depends_on:
@@ -342,6 +365,9 @@ services:
       - MINIO_ACCESS_KEY=minioadmin
       - MINIO_SECRET_KEY=minioadmin
       - MINIO_ENDPOINT=http://minio:9000
+      - LAKEFS_ENDPOINT=http://lakefs:8000
+      - LAKEFS_ACCESS_KEY=AKIAJBWUDLDFGJY36X3Q
+      - LAKEFS_SECRET_KEY=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
     depends_on:
       kafka:
         condition: service_healthy
@@ -351,11 +377,11 @@ services:
     networks:
       - localnet
 
-  spark-worker:
+  spark-worker-1:
     build:
       context: ./spark
       dockerfile: dockerfile_worker
-    container_name: spark-worker
+    container_name: spark-worker-1
     depends_on:
       - spark-master
     environment:
@@ -364,8 +390,32 @@ services:
       - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
       - CHARGING_EVENTS_TOPIC=ev_charging_events
       - SPARK_WORKER_MEMORY=2g
+      - LAKEFS_REPOSITORY=charging-data
+      - LAKECTL_CREDENTIALS_ACCESS_KEY_ID=AKIAJBWUDLDFGJY36X3Q
+      - LAKECTL_CREDENTIALS_SECRET_ACCESS_KEY=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
     ports:
       - "8081:8081"  # Spark Worker Web UI
+    networks:
+      - localnet
+
+  spark-worker-2:
+    build:
+      context: ./spark
+      dockerfile: dockerfile_worker
+    container_name: spark-worker-2
+    depends_on:
+      - spark-master
+    environment:
+      - SPARK_MODE=worker
+      - SPARK_MASTER_URL=spark://spark-master:7077
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+      - CHARGING_EVENTS_TOPIC=ev_charging_events
+      - SPARK_WORKER_MEMORY=2g
+      - LAKEFS_REPOSITORY=charging-data
+      - LAKECTL_CREDENTIALS_ACCESS_KEY_ID=AKIAJBWUDLDFGJY36X3Q
+      - LAKECTL_CREDENTIALS_SECRET_ACCESS_KEY=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
+    ports:
+      - "8082:8082"  # Spark Worker Web UI
     networks:
       - localnet
 
@@ -440,3 +490,4 @@ volumes:
   mongodb_data2:
   mongodb_data3:
   mongodb_data4:
+  clickhouse_data:

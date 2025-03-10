@@ -6,8 +6,10 @@ class ChargingMessage:
     """
     Represents a charging event message.
     """
-    event_type: Literal["start", "progress", "end"]
     session_id: str
+    session_number: int
     station_id: str
     ev_id: str
+    # TODO: Add disconnection, error, etc.
+    event_type: Literal["start", "completion"]
     payload: dict[str, Any]

@@ -48,11 +48,17 @@ class KafkaRepository:
         Publishes a charging station event message to Kafka
         """
         try:
-            self.kafka_config.producer.send(
-                topic,
-                key=f"{message.station_id}:{message.event_type}".encode('utf-8'),
-                value=message.payload
-            )
+            # Create message dictionary
+            message_dict = {
+                "session_id": message.session_id,
+                "session_number": message.session_number,
+                "station_id": message.station_id,
+                "ev_id": message.ev_id,
+                "event_type": message.event_type,
+                "payload": message.payload
+            }
+            # Let the producer's value_serializer handle the serialization
+            self.kafka_config.producer.send(topic, value=message_dict)
         except Exception as e:
             print(f"Error publishing message: {e}")
             raise

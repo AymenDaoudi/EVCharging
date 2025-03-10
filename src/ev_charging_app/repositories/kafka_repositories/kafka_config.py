@@ -1,5 +1,5 @@
-import json
 from kafka import KafkaAdminClient, KafkaClient, KafkaProducer
+import json
 
 class KafkaConfig:
     def __init__(self, kafka_bootsrap_Server: str):
