@@ -1,0 +1,11 @@
+<yandex>
+    <!-- Enable CORS -->
+    <http_server>
+        <cors>true</cors>
+    </http_server>
+    
+    <!-- Allow any origin -->
+    <http_server_default_response>
+        <add_http_cors_header>1</add_http_cors_header>
+    </http_server_default_response>
+</yandex> 

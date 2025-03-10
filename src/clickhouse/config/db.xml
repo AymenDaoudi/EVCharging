@@ -1,0 +1,7 @@
+<yandex>
+    <databases>
+        <ev_charging>
+            <engine>Atomic</engine>
+        </ev_charging>
+    </databases>
+</yandex> 

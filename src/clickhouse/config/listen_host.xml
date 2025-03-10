@@ -1,0 +1,18 @@
+<yandex>
+    <!-- Disable IPv6 listening -->
+    <listen_host>0.0.0.0</listen_host>
+    
+    <!-- Configure HTTP port -->
+    <http_port>8123</http_port>
+    
+    <!-- Configure TCP port -->
+    <tcp_port>9000</tcp_port>
+    
+    <!-- Configure interserver HTTP port -->
+    <interserver_http_port>9009</interserver_http_port>
+    
+    <!-- Allow connections from any host -->
+    <http_server>
+        <cors_headers>true</cors_headers>
+    </http_server>
+</yandex> 
