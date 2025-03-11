@@ -1,11 +1,9 @@
 import logging
-from pyspark.sql.functions import from_json, udf
+from pyspark.sql.functions import from_json, col
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, when, sum, lit
 from pyspark.sql.types import StructType, StructField, StringType, MapType, IntegerType
-from pyspark.sql.window import Window
-from lakefs_manager import create_branch, commit_to_branch
 import os
+from micro_batch_processor import write_to_branch_and_commit
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -16,8 +14,8 @@ KAFKA_BOOTSTRAP_SERVERS = os.environ.get("KAFKA_BOOTSTRAP_SERVERS", "kafka:29092
 CHARGING_EVENTS_TOPIC = os.getenv('CHARGING_EVENTS_TOPIC', 'charging_events')
 MINIO_ACCESS_KEY = os.getenv('MINIO_ACCESS_KEY', 'minioadmin')
 MINIO_SECRET_KEY = os.getenv('MINIO_SECRET_KEY', 'minioadmin')
-MINIO_ENDPOINT = os.getenv('MINIO_ENDPOINT', 'http://minio:9000')
 REPOSITORY = os.getenv("LAKEFS_REPOSITORY", "charging-data")
+MINIO_ENDPOINT = os.getenv('MINIO_ENDPOINT', 'http://minio:9000')
 LAKEFS_ENDPOINT = os.getenv("LAKEFS_ENDPOINT", "http://lakefs:8000")
 LAKEFS_ACCESS_KEY = os.getenv("LAKEFS_ACCESS_KEY", "AKIAJBWUDLDFGJY36X3Q")
 LAKEFS_SECRET_KEY = os.getenv("LAKEFS_SECRET_KEY", "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")
@@ -31,64 +29,11 @@ schema = StructType([
     StructField("payload", MapType(StringType(), StringType()), True)
 ])
 
-session_branches: dict[int, str] = {}
-
-def range_resolver(session_number: int):
-    range = 1000
-    i = 1;
-    
-    while range * i < session_number:
-        i += 1
-        
-    return range * i
-
-def process_df(df):
-    # Apply the UDF to create the session_number_range column
-    range_resolver_udf = udf(range_resolver, IntegerType())
-    df = df.withColumn("session_number_range", range_resolver_udf(col("session_number")))
-    
-    # Get distinct session number ranges
-    session_number_ranges = [row.session_number_range for row in df.select("session_number_range").distinct().collect()]
-    
-    logger.info(f"Found {len(session_number_ranges)} session number ranges.")
-    
-    for session_number_range in session_number_ranges:
-        branch: str | None = None 
-        if session_number_range not in session_branches:
-            branch = create_branch(REPOSITORY, f"batch_{session_number_range}")
-            logger.info(f"🔀 Created branch {branch}")
-            assert branch is not None, "Failed to create branch"
-            session_branches[session_number_range] = branch
-        else:
-            branch = session_branches[session_number_range]
-
-        logger.info(f"✍️ Started writing to branch {branch}")
-        
-        # Filter for this range and write to storage
-        filtered_df = df.filter(col("session_number_range") == session_number_range)
-        
-        # For batch processing (not streaming)
-        filtered_df.write \
-            .format("parquet") \
-            .mode("append") \
-            .option("path", f"s3a://{REPOSITORY}/{branch}/charging-events/charging_session_{session_number_range}") \
-            .save()
-        
-        logger.info(f"✍️ Finished writing to branch {branch}")
-        
-        logger.info(f"✅ Committed batch {session_number_range}")
-        
-        commit_to_branch(REPOSITORY, branch, f"Committing batch {session_number_range}")
-        
-        logger.info(f"✅ Finished committing batch {session_number_range}")
-    
-    return df
-
 def process_batch(data_frame, batch_id):
     
     logger.info(f"Processing batch {batch_id}")
     
-    process_df(data_frame)
+    write_to_branch_and_commit(data_frame)
     
     logger.info(f"Finished processing batch {batch_id}")
 

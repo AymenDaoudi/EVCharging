@@ -9,6 +9,7 @@ ENV SPARK_HOME=/opt/bitnami/spark
 ENV PATH="$SPARK_HOME/bin:$PATH"
 ENV KAFKA_BOOTSTRAP_SERVERS=kafka:29092
 ENV CHARGING_EVENTS_TOPIC=ev_charging_events
+ENV PYTHONPATH="${SPARK_HOME}/scripts:${PYTHONPATH}"
 
 # Network configuration
 ENV SPARK_NETWORK_TIMEOUT=800s
@@ -67,6 +68,7 @@ RUN mkdir -p /opt/bitnami/spark/scripts
 
 # Copy the Kafka Spark Streaming script and startup script
 COPY ./spark-app/spark_kafka_streaming.py $SPARK_HOME/scripts/
+COPY ./spark-app/micro_batch_processor.py $SPARK_HOME/scripts/
 COPY ./spark-app/lakefs_manager.py $SPARK_HOME/scripts/
 COPY ./spark-app/start-master.sh $SPARK_HOME/scripts/
 
