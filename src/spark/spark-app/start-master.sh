@@ -22,9 +22,9 @@ spark-submit \
     --conf "spark.hadoop.fs.s3a.path.style.access=true" \
     --conf "spark.hadoop.fs.s3a.connection.ssl.enabled=false" \
     --jars "/opt/bitnami/spark/jars/*" \
-    /opt/bitnami/spark/scripts/spark_kafka_streaming.py \
-    /opt/bitnami/spark/scripts/micro_batch_processor.py \
-    /opt/bitnami/spark/scripts/lakefs_manager.py
+    /opt/bitnami/spark/scripts/spark_app.py \
+    /opt/bitnami/spark/scripts/lakefs_manager.py \
+    /opt/bitnami/spark/scripts/charging_events_stream_processor.py
 
 # Keep the container running
 tail -f /dev/null 

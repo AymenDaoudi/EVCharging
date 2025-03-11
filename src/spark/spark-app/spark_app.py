@@ -3,7 +3,7 @@ from pyspark.sql.functions import from_json, col
 from pyspark.sql import SparkSession
 from pyspark.sql.types import StructType, StructField, StringType, MapType, IntegerType
 import os
-from micro_batch_processor import write_to_branch_and_commit
+from charging_events_stream_processor import ingest_charging_events_data
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -29,13 +29,7 @@ schema = StructType([
     StructField("payload", MapType(StringType(), StringType()), True)
 ])
 
-def process_batch(data_frame, batch_id):
-    
-    logger.info(f"Processing batch {batch_id}")
-    
-    write_to_branch_and_commit(data_frame)
-    
-    logger.info(f"Finished processing batch {batch_id}")
+
 
 logger.info("Starting Spark Streaming Job")
 
@@ -59,44 +53,7 @@ spark = SparkSession.builder \
 logger.info("Spark Session Created")  
 
 try:
-    
-    logger.info("Reading from Kafka")
-    # Read stream from Kafka
-    df_kafka = spark.readStream \
-        .format("kafka") \
-        .option("kafka.bootstrap.servers", KAFKA_BOOTSTRAP_SERVERS) \
-        .option("subscribe", CHARGING_EVENTS_TOPIC) \
-        .option("startingOffsets", "earliest") \
-        .option("maxOffsetsPerTrigger", 1000) \
-        .option("failOnDataLoss", "false") \
-        .load()
-
-    # Extract JSON from Kafka message
-    df = df_kafka.select(from_json(col("value").cast("string"), schema).alias("data"))
-
-    # Flatten the structure
-    df = df.select(
-        col("data.event_type").alias("event_type"),
-        col("data.session_id").alias("session_id"),
-        col("data.session_number").alias("session_number"),
-        col("data.station_id").alias("station_id"),
-        col("data.ev_id").alias("ev_id"),
-        col("data.payload").alias("payload")
-    )
-
-    logger.info("Successfully connected to Kafka topic")
-    
-    # Write to Azure Blob Storage
-    blob_query = df.writeStream \
-        .foreachBatch(process_batch) \
-        .trigger(processingTime='5 seconds') \
-        .start()
-    
-    logger.info("Queries Started")
-    
-    # Wait for both queries to terminate
-    # console_query.awaitTermination()
-    blob_query.awaitTermination()
+    ingest_charging_events_data(spark, schema)
     logger.info("Queries Ended")
 
 except Exception as e:

@@ -48,8 +48,9 @@ RUN mkdir -p $SPARK_HOME/jars && \
 RUN mkdir -p /opt/bitnami/spark/scripts
 
 # Copy the Python modules needed by workers
-COPY ./spark-app/micro_batch_processor.py $SPARK_HOME/scripts/
+COPY ./spark-app/spark_app.py $SPARK_HOME/scripts/
 COPY ./spark-app/lakefs_manager.py $SPARK_HOME/scripts/
+COPY ./spark-app/charging_events_stream_processor.py $SPARK_HOME/scripts/
 
 # Set proper permissions
 RUN chown -R 1001:root $SPARK_HOME/jars/ && \

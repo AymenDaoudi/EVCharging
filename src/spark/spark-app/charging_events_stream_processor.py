@@ -2,12 +2,18 @@ import logging
 from pyspark.sql.functions import udf, col
 from pyspark.sql.types import IntegerType
 from lakefs_manager import create_branch, commit_to_branch
+import logging
+from pyspark.sql.functions import from_json, col
+from pyspark.sql.types import IntegerType
 import os
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Environment variables
+KAFKA_BOOTSTRAP_SERVERS = os.environ.get("KAFKA_BOOTSTRAP_SERVERS", "kafka:29092")
+CHARGING_EVENTS_TOPIC = os.getenv('CHARGING_EVENTS_TOPIC', 'charging_events')
 REPOSITORY = os.getenv("LAKEFS_REPOSITORY", "charging-data")
 
 session_branches: dict[int, str] = {}
@@ -73,3 +79,50 @@ def write_to_branch_and_commit(df):
         logger.info(f"✅ Finished committing batch {session_number_range}")
     
     return df
+
+def ingest_charging_events_data(spark, schema):
+    
+    logger.info("Reading from Kafka")
+    # Read stream from Kafka
+    df_kafka = spark.readStream \
+        .format("kafka") \
+        .option("kafka.bootstrap.servers", KAFKA_BOOTSTRAP_SERVERS) \
+        .option("subscribe", CHARGING_EVENTS_TOPIC) \
+        .option("startingOffsets", "earliest") \
+        .option("maxOffsetsPerTrigger", 1000) \
+        .option("failOnDataLoss", "false") \
+        .load()
+
+    # Extract JSON from Kafka message
+    df = df_kafka.select(from_json(col("value").cast("string"), schema).alias("data"))
+
+    # Flatten the structure
+    df = df.select(
+        col("data.event_type").alias("event_type"),
+        col("data.session_id").alias("session_id"),
+        col("data.session_number").alias("session_number"),
+        col("data.station_id").alias("station_id"),
+        col("data.ev_id").alias("ev_id"),
+        col("data.payload").alias("payload")
+    )
+
+    logger.info("Successfully connected to Kafka topic")
+    
+    # Write to Azure Blob Storage
+    blob_query = df.writeStream \
+        .foreachBatch(process_batch) \
+        .trigger(processingTime='5 seconds') \
+        .start()
+    
+    logger.info("Queries Started")
+    
+    # Wait for both queries to terminate
+    blob_query.awaitTermination()
+
+def process_batch(data_frame, batch_id):
+    
+    logger.info(f"Processing batch {batch_id}")
+    
+    write_to_branch_and_commit(data_frame)
+    
+    logger.info(f"Finished processing batch {batch_id}")
