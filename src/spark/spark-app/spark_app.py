@@ -36,19 +36,7 @@ logger.info("Starting Spark Streaming Job")
 # Initialize Spark with Kafka packages
 spark = SparkSession.builder \
     .appName("KafkaSparkStreaming") \
-    .config("spark.jars.packages", "org.apache.spark:spark-sql-kafka-0-10_2.12:3.2.0") \
-    .config("spark.hadoop.fs.s3a.access.key", LAKEFS_ACCESS_KEY) \
-    .config("spark.hadoop.fs.s3a.secret.key", LAKEFS_SECRET_KEY) \
-    .config("spark.hadoop.fs.s3a.endpoint", LAKEFS_ENDPOINT) \
-    .config("spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem") \
-    .config("spark.hadoop.fs.s3a.path.style.access", "true") \
-    .config("spark.hadoop.fs.s3a.connection.ssl.enabled", "false") \
     .getOrCreate()
-
-    # .config("spark.hadoop.fs.lakefs.impl", "io.lakefs.LakeFSFileSystem") \
-    # .config("spark.hadoop.fs.lakefs.access.key", LAKEFS_ACCESS_KEY) \
-    # .config("spark.hadoop.fs.lakefs.secret.key", LAKEFS_SECRET_KEY) \
-    # .config("spark.hadoop.fs.lakefs.endpoint", LAKEFS_ENDPOINT) \
 
 logger.info("Spark Session Created")  
 

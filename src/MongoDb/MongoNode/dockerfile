@@ -15,14 +15,9 @@ RUN npm init -y && \
 # Copy script for database initialization
 COPY mongo-init.js /docker-entrypoint-initdb.d/
 
-# Copy script for generating security key for inter replicas communication
-COPY keyfile_generator.sh /keyfile_generator.sh
-
-# Generating security key for inter replicas communication
-RUN /bin/bash /keyfile_generator.sh
-
 # Copy mongod configuration file
 COPY mongod.conf /etc/mongod.conf
 
-# Give mongodb user the ownership of the configuration file
-CMD chown -R mongodb:mongodb /etc/mongodb
+# Create log directory
+RUN mkdir -p /var/log/mongodb && \
+    chown -R mongodb:mongodb /var/log/mongodb

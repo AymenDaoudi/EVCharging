@@ -1,144 +1,33 @@
 name: data
 services:
 
-  postgres_db:
-    build: 
-      context: ./Postgres
-      dockerfile: dockerfile
-    container_name: postgres_db
-    environment:
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: admin
-      POSTGRES_DB: initdb
-    ports:
-      - "5432:5432"
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  mongo-db-node-1:
+  mongo-db:
     build:
       context: ./MongoDb/MongoNode
       dockerfile: dockerfile
-    container_name: mongo-db-node-1
+    container_name: mongo-db
     environment:
-      - MONGODB_ADVERTISED_HOSTNAME=mongo1
       - DB_NAME=Db
       - DB_USER=User
       - DB_PASS=Pass
-      - REPLICASET_NAME=replica-set
       - MONGO_INITDB_ROOT_USERNAME=admin
       - MONGO_INITDB_ROOT_PASSWORD=admin
       - MONGO_INITDB_DATABASE=InitDb
       - EXPERIMENTAL_DOCKER_DESKTOP_FORCE_QEMU=1 # This is required on Apple Silicon https://github.com/docker/for-mac/issues/6620
     ports:
-      - 37001:30001
+      - 27017:27017
     extra_hosts:
       - "host.docker.internal:host-gateway"
-    command: mongod --port 30001 --replSet replica-set --config /etc/mongod.conf --bind_ip_all
+    command: mongod --port 27017 --config /etc/mongod.conf --bind_ip_all
     restart: always
     healthcheck:
-      test: echo 'db.runCommand({serverStatus:1}).ok' | mongosh admin -u $$MONGO_INITDB_ROOT_USERNAME -p $$MONGO_INITDB_ROOT_PASSWORD --quiet --port 30001 | grep 1
+      test: echo 'db.runCommand({serverStatus:1}).ok' | mongosh admin -u $$MONGO_INITDB_ROOT_USERNAME -p $$MONGO_INITDB_ROOT_PASSWORD --quiet --port 27017 | grep 1
       interval: 20s
       timeout: 20s
       retries: 3
     volumes:
-      - mongodb_data1:/data/db
+      - mongodb_data:/data/db
       - ./MongoDb/Data:/data
-    networks:
-      - localnet
-
-  mongo-db-node-2:
-    build:
-      context: ./MongoDb/MongoNode
-      dockerfile: dockerfile
-    container_name: mongo-db-node-2
-    environment:
-      - MONGODB_ADVERTISED_HOSTNAME=mongo2
-      - DB_NAME=Db
-      - DB_USER=User
-      - DB_PASS=Pass
-      - REPLICASET_NAME=replica-set
-      - MONGO_INITDB_ROOT_USERNAME=admin
-      - MONGO_INITDB_ROOT_PASSWORD=admin
-      - MONGO_INITDB_DATABASE=InitDb
-      - EXPERIMENTAL_DOCKER_DESKTOP_FORCE_QEMU=1 # This is required on Apple Silicon https://github.com/docker/for-mac/issues/6620
-    ports:
-      - 37002:30002
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    command: mongod --port 30002 --replSet replica-set --config /etc/mongod.conf --bind_ip_all
-    restart: always
-    healthcheck:
-      test: echo 'db.runCommand({serverStatus:1}).ok' | mongosh admin -u $$MONGO_INITDB_ROOT_USERNAME -p $$MONGO_INITDB_ROOT_PASSWORD --quiet --port 30002 | grep 1
-      interval: 20s
-      timeout: 20s
-      retries: 3
-    volumes:
-      - mongodb_data2:/data/db
-      - ./MongoDb/Data:/data
-    networks:
-      - localnet
-
-  mongo-db-node-3:
-    build:
-      context: ./MongoDb/MongoNode
-      dockerfile: dockerfile
-    container_name: mongo-db-node-3
-    environment:
-      - MONGODB_ADVERTISED_HOSTNAME=mongo3
-      - DB_NAME=Db
-      - DB_USER=User
-      - DB_PASS=Pass
-      - REPLICASET_NAME=replica-set
-      - MONGO_INITDB_ROOT_USERNAME=admin
-      - MONGO_INITDB_ROOT_PASSWORD=admin
-      - MONGO_INITDB_DATABASE=InitDb
-      - EXPERIMENTAL_DOCKER_DESKTOP_FORCE_QEMU=1 # This is required on Apple Silicon https://github.com/docker/for-mac/issues/6620
-    ports:
-      - 37003:30003
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    command: mongod --port 30003 --replSet replica-set --config /etc/mongod.conf --bind_ip_all
-    restart: always
-    healthcheck:
-      test: echo 'db.runCommand({serverStatus:1}).ok' | mongosh admin -u $$MONGO_INITDB_ROOT_USERNAME -p $$MONGO_INITDB_ROOT_PASSWORD --quiet --port 30003 | grep 1
-      interval: 20s
-      timeout: 20s
-      retries: 3
-    volumes:
-      - mongodb_data3:/data/db
-      - ./MongoDb/Data:/data
-    networks:
-      - localnet
-
-  db-replicaset:
-    build:
-      context: ./MongoDb/MongoReplicaSet
-      dockerfile: dockerfile
-    container_name: replicaset_initializer
-    environment:
-      - MONGO_INITDB_ROOT_USERNAME=admin
-      - MONGO_INITDB_ROOT_PASSWORD=admin
-      - MONGO_INITDB_DATABASE=InitDb
-    ports:
-      - 37004:30004
-    depends_on:
-      mongo-db-node-1:
-        condition: service_healthy
-      mongo-db-node-2:
-        condition: service_healthy
-      mongo-db-node-3:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "/healthcheck.sh"]
-      interval: 16s
-      timeout: 16s
-      retries: 3
-    volumes:
-      - mongodb_data4:/data/db
     networks:
       - localnet
 
@@ -148,32 +37,18 @@ services:
       dockerfile: dockerfile
     container_name: db-explorer
     environment:
-      - ME_CONFIG_MONGODB_URL=mongodb://User:Pass@mongo-db-node-1:30001,mongo-db-node-2:30002,mongo-db-node-3:30003/Db?replicaSet=replica-set
-      - PORT=8082
-        #ME_CONFIG_MONGODB_SERVER=mongodb
-      - ME_CONFIG_MONGODB_AUTH_DATABASE=Db
-      - ME_CONFIG_MONGODB_AUTH_USERNAME=User
-      - ME_CONFIG_MONGODB_AUTH_PASSWORD=Pass
-        #ME_CONFIG_MONGODB_PORT=27017
-      - ME_CONFIG_MONGODB_ENABLE_ADMIN=true
+      - ME_CONFIG_MONGODB_SERVER=mongo-db
+      - ME_CONFIG_MONGODB_PORT=27017
       - ME_CONFIG_MONGODB_ADMINUSERNAME=admin
       - ME_CONFIG_MONGODB_ADMINPASSWORD=admin
+      - ME_CONFIG_BASICAUTH_USERNAME=admin
+      - ME_CONFIG_BASICAUTH_PASSWORD=admin
+      - PORT=8082
     ports:
       - 8085:8082
     depends_on:
-      mongo-db-node-1:
+      mongo-db:
         condition: service_healthy
-      mongo-db-node-2:
-        condition: service_healthy
-      mongo-db-node-3:
-        condition: service_healthy
-      db-replicaset:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "/healthcheck.sh"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
     networks:
       - localnet
 
@@ -215,45 +90,6 @@ services:
       retries: 5
     networks:
       - localnet
-    
-  kafka-connect:
-    build: 
-      context: ./Kafka/kafka-connect/
-      dockerfile: dockerfile
-    hostname: kafka-connect
-    container_name: kafka-connect
-    depends_on:
-      kafka:
-        condition: service_healthy
-      # schema-registry:
-      #   condition: service_healthy
-      mongo-express:
-        condition: service_healthy
-    ports:
-      - "8083:8083"
-    restart: always
-    env_file:
-      - path: ./Kafka/kafka-connect/.env
-    healthcheck:
-      test: ["CMD", "/etc/confluent/docker/healthcheck.sh"]
-      interval: 10s
-      timeout: 20s
-      retries: 5
-    networks:
-      - localnet
-
-  mongodb-source-connector:
-    build: 
-      context: ./Kafka/mongodb-source-connector/
-      dockerfile: dockerfile
-    hostname: mongodb-source-connector
-    container_name: mongodb-source-connector
-    restart: always
-    depends_on:
-      kafka-connect:
-        condition: service_healthy
-    networks:
-      - localnet
 
   control-center:
     image: confluentinc/cp-enterprise-control-center:latest
@@ -279,13 +115,15 @@ services:
     depends_on:
       kafka:
         condition: service_healthy
-      db-replicaset:
+      mongo-db:
         condition: service_healthy
+      # db-replicaset:
+      #   condition: service_healthy
     environment:
       SIM_DURATION: 100.0
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       CHARGING_EVENTS_TOPIC: ev_charging_events
-      MONGO_URI: mongodb://User:Pass@mongo-db-node-1:30001,mongo-db-node-2:30002,mongo-db-node-3:30003/Db?replicaSet=replica-set
+      MONGO_URI: mongodb://User:Pass@mongo-db:27017/Db
     networks:
       - localnet
 
@@ -295,23 +133,7 @@ services:
       dockerfile: dockerfile_master
     container_name: spark-master
     environment:
-      - SPARK_MODE=master
       - SPARK_MASTER_HOST=spark-master
-      - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
-      - CHARGING_EVENTS_TOPIC=ev_charging_events
-      - SPARK_SUBMIT_OPTIONS=--conf spark.driver.memory=2g
-      - SPARK_RPC_MESSAGE_MAXSIZE=1024
-      - SPARK_NETWORK_TIMEOUT=60s
-      - SPARK_DRIVER_EXTRA_JAVA_OPTIONS=-Dspark.maxRemoteBlockSizeFetchToMem=200m
-      - SPARK_DRIVER_MAXRESULTSIZE=2g
-      - SPARK_WORKER_MEMORY=2g
-      - SPARK_EXECUTOR_MEMORY=2g
-      - MINIO_ACCESS_KEY=minioadmin
-      - MINIO_SECRET_KEY=minioadmin
-      - MINIO_ENDPOINT=http://minio:9000
-      - LAKEFS_ENDPOINT=http://lakefs:8000
-      - LAKEFS_ACCESS_KEY=AKIAJBWUDLDFGJY36X3Q
-      - LAKEFS_SECRET_KEY=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
     depends_on:
       kafka:
         condition: service_healthy
@@ -328,15 +150,6 @@ services:
     container_name: spark-worker-1
     depends_on:
       - spark-master
-    environment:
-      - SPARK_MODE=worker
-      - SPARK_MASTER_URL=spark://spark-master:7077
-      - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
-      - CHARGING_EVENTS_TOPIC=ev_charging_events
-      - SPARK_WORKER_MEMORY=2g
-      - LAKEFS_REPOSITORY=charging-data
-      - LAKECTL_CREDENTIALS_ACCESS_KEY_ID=AKIAJBWUDLDFGJY36X3Q
-      - LAKECTL_CREDENTIALS_SECRET_ACCESS_KEY=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
     ports:
       - "8081:8081"  # Spark Worker Web UI
     networks:
@@ -349,15 +162,6 @@ services:
     container_name: spark-worker-2
     depends_on:
       - spark-master
-    environment:
-      - SPARK_MODE=worker
-      - SPARK_MASTER_URL=spark://spark-master:7077
-      - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
-      - CHARGING_EVENTS_TOPIC=ev_charging_events
-      - SPARK_WORKER_MEMORY=2g
-      - LAKEFS_REPOSITORY=charging-data
-      - LAKECTL_CREDENTIALS_ACCESS_KEY_ID=AKIAJBWUDLDFGJY36X3Q
-      - LAKECTL_CREDENTIALS_SECRET_ACCESS_KEY=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
     ports:
       - "8082:8082"  # Spark Worker Web UI
     networks:
@@ -425,51 +229,106 @@ services:
     networks:
       - localnet
 
-  clickhouse:
-    image: clickhouse/clickhouse-server:latest
-    container_name: clickhouse
-    ports:
-      - "18123:8123"  # HTTP interface - changed from 8123 to avoid conflict
-      - "19000:9000"  # Native interface - changed from 9000 to avoid conflict
+  # clickhouse:
+  #   image: clickhouse/clickhouse-server:latest
+  #   container_name: clickhouse
+  #   ports:
+  #     - "18123:8123"  # HTTP interface - changed from 8123 to avoid conflict
+  #     - "19000:9000"  # Native interface - changed from 9000 to avoid conflict
+  #   environment:
+  #     - CLICKHOUSE_USER=admin
+  #     - CLICKHOUSE_PASSWORD=admin
+  #     - CLICKHOUSE_DB=ev_charging
+  #   volumes:
+  #     - clickhouse_data:/var/lib/clickhouse
+  #     - clickhouse_logs:/var/log/clickhouse-server
+  #     - ./clickhouse/config:/etc/clickhouse-server/config.d
+  #   healthcheck:
+  #     test: wget --no-verbose --tries=1 --spider http://localhost:8123/ping || exit 1
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 3
+  #   networks:
+  #     - localnet
+
+  # ch-ui:
+  #   image: ghcr.io/caioricciuti/ch-ui:latest
+  #   restart: always
+  #   ports:
+  #     - "5521:5521"
+  #   environment:
+  #     - VITE_CLICKHOUSE_URL=http://localhost:18123
+  #     - VITE_CLICKHOUSE_USER=admin
+  #     - VITE_CLICKHOUSE_PASS=admin
+  #   depends_on:
+  #     clickhouse:
+  #       condition: service_healthy
+  #   networks:
+  #     - localnet  
+
+  airflow-postgres:
+    image: postgres:13
+    container_name: airflow-postgres
     environment:
-      - CLICKHOUSE_USER=admin
-      - CLICKHOUSE_PASSWORD=admin
-      - CLICKHOUSE_DB=ev_charging
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
     volumes:
-      - clickhouse_data:/var/lib/clickhouse
-      - clickhouse_logs:/var/log/clickhouse-server
-      - ./clickhouse/config:/etc/clickhouse-server/config.d
+      - airflow_postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: wget --no-verbose --tries=1 --spider http://localhost:8123/ping || exit 1
+      test: ["CMD", "pg_isready", "-U", "airflow"]
       interval: 10s
       timeout: 5s
-      retries: 3
+      retries: 5
     networks:
       - localnet
 
-  ch-ui:
-    image: ghcr.io/caioricciuti/ch-ui:latest
-    restart: always
-    ports:
-      - "5521:5521"
-    environment:
-      - VITE_CLICKHOUSE_URL=http://localhost:18123
-      - VITE_CLICKHOUSE_USER=admin
-      - VITE_CLICKHOUSE_PASS=admin
+  airflow:
+    build:
+      context: ./airflow
+      dockerfile: dockerfile
+    container_name: airflow
+    hostname: airflow
     depends_on:
-      clickhouse:
+      airflow-postgres:
         condition: service_healthy
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@airflow-postgres/airflow
+      - AIRFLOW__CORE__FERNET_KEY=46BKJoQYlPPOexq0OhDZnIlNepKFf87WFwLbfzqDDho=
+      - AIRFLOW__CORE__LOAD_EXAMPLES=False
+      - AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION=True
+      - AIRFLOW_CONN_LAKEFS_DEFAULT=http://AKIAJBWUDLDFGJY36X3Q:sYAuql0Go9qOOQlQNPEw5Cg2AOzLZebnKgMaVyF+@lakefs:8000
+      - _AIRFLOW_DB_MIGRATE=true
+      - _AIRFLOW_WWW_USER_CREATE=true
+      - _AIRFLOW_WWW_USER_USERNAME=admin
+      - _AIRFLOW_WWW_USER_PASSWORD=admin
+      - LAKEFS_REPOSITORY=charging-data
+      - LAKEFS_BRANCH=main
+    volumes:
+      - airflow_logs:/opt/airflow/logs
+    ports:
+      - "8090:8080"
+    command: >
+      bash -c "airflow db migrate &&
+               airflow users create --username admin --password admin --firstname Admin --lastname User --role Admin --email admin@example.com &&
+               airflow connections add 'lakefs_conn' --conn-type 'http' --conn-host 'lakefs:8000' --conn-login 'AKIAJBWUDLDFGJY36X3Q' --conn-password 'sYAuql0Go9qOOQlQNPEw5Cg2AOzLZebnKgMaVyF+' &&
+               airflow webserver & airflow scheduler"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
     networks:
-      - localnet  
+      - localnet
 
 networks:
   localnet:
     driver: bridge
 
 volumes:
-  mongodb_data1:
-  mongodb_data2:
-  mongodb_data3:
-  mongodb_data4:
+  mongodb_data:
   clickhouse_data:
   clickhouse_logs:
+  airflow_postgres_data:
+  airflow_logs:

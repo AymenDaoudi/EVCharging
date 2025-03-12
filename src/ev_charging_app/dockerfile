@@ -4,7 +4,7 @@ FROM python:3.11-slim
 ENV SIM_DURATION=100.0
 ENV KAFKA_BOOTSTRAP_SERVERS=kafka:29092
 ENV CHARGING_EVENTS_TOPIC=ev_charging_events
-ENV MONGO_URI=mongodb://User:Pass@mongo-db-node-1:30001,mongo-db-node-2:30002,mongo-db-node-3:30003/Db?replicaSet=replica-set
+ENV MONGO_URI=mongodb://User:Pass@mongo-db:27017/Db
 
 # Add the app directory to Python path
 ENV PYTHONPATH=/app

@@ -1,10 +1,20 @@
 FROM bitnami/spark:latest
 
 # Set up environment variables
+# Spark configuration
+ENV SPARK_MODE=worker
+ENV SPARK_WORKER_MEMORY=3g
+ENV SPARK_EXECUTOR_MEMORY=3g
+ENV SPARK_MASTER_URL=spark://spark-master:7077
 ENV SPARK_HOME=/opt/bitnami/spark
 ENV PATH="$SPARK_HOME/bin:$PATH"
+# Kafka configuration
 ENV KAFKA_BOOTSTRAP_SERVERS=kafka:29092
 ENV CHARGING_EVENTS_TOPIC=ev_charging_events
+# LakeFS configuration
+ENV LAKEFS_REPOSITORY=charging-data
+ENV LAKECTL_CREDENTIALS_ACCESS_KEY_ID=AKIAJBWUDLDFGJY36X3Q
+ENV LAKECTL_CREDENTIALS_SECRET_ACCESS_KEY=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
 ENV PYTHONPATH="${SPARK_HOME}/scripts:${PYTHONPATH}"
 
 # Create work directory
@@ -28,13 +38,6 @@ RUN mkdir -p $SPARK_HOME/jars && \
         https://repo1.maven.org/maven2/org/apache/spark/spark-token-provider-kafka-0-10_2.12/3.3.0/spark-token-provider-kafka-0-10_2.12-3.3.0.jar && \
     curl -o $SPARK_HOME/jars/commons-pool2-2.11.1.jar \
         https://repo1.maven.org/maven2/org/apache/commons/commons-pool2/2.11.1/commons-pool2-2.11.1.jar && \
-    # Azure Storage dependencies
-    curl -o $SPARK_HOME/jars/hadoop-azure-3.3.1.jar \
-        https://repo1.maven.org/maven2/org/apache/hadoop/hadoop-azure/3.3.1/hadoop-azure-3.3.1.jar && \
-    curl -o $SPARK_HOME/jars/azure-storage-8.6.6.jar \
-        https://repo1.maven.org/maven2/com/microsoft/azure/azure-storage/8.6.6/azure-storage-8.6.6.jar && \
-    curl -o $SPARK_HOME/jars/azure-keyvault-core-1.0.0.jar \
-        https://repo1.maven.org/maven2/com/microsoft/azure/azure-keyvault-core/1.0.0/azure-keyvault-core-1.0.0.jar && \
     # Jetty dependencies
     curl -o $SPARK_HOME/jars/jetty-util-9.4.48.v20220622.jar \
         https://repo1.maven.org/maven2/org/eclipse/jetty/jetty-util/9.4.48.v20220622/jetty-util-9.4.48.v20220622.jar && \

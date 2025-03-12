@@ -1,0 +1,4 @@
+requests>=2.25.0
+python-dotenv>=0.15.0
+apache-airflow
+airflow-provider-lakefs>=0.47.0
