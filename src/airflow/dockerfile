@@ -1,4 +1,4 @@
-FROM apache/airflow:2.7.1
+FROM apache/airflow:latest-python3.12
 
 USER root
 
@@ -6,17 +6,28 @@ USER root
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     build-essential \
+    default-jdk \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements file
-COPY requirements.txt /requirements.txt
+# Set JAVA_HOME environment variable
+#ENV JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
+ENV JAVA_HOME=/usr/lib/jvm/default-java
+ENV PATH=$PATH:$JAVA_HOME/bin
 
-# Switch back to airflow user and install Python dependencies
+# Copy requirements file and setup script
+COPY ./dags/example_spark_job.py /opt/airflow/spark/example_spark_job.py
+COPY requirements.txt /requirements.txt
+COPY setup_connections.sh /setup_connections.sh
+
+# Make the setup script executable
+RUN chmod +x /setup_connections.sh
+
+# Switch to airflow user for pip operations
 USER airflow
+
+# Install Python dependencies
 RUN pip install --no-cache-dir -r /requirements.txt
 
-# Set the AIRFLOW_HOME environment variable
-ENV AIRFLOW_HOME=/opt/airflow
-
-# The entrypoint and cmd are inherited from the base image 
+# Switch back to root for any other operations if needed
+USER root

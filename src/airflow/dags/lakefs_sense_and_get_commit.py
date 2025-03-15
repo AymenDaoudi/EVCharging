@@ -3,9 +3,7 @@ from typing import Any, Dict, Union
 from airflow.sensors.base import BaseSensorOperator
 from airflow.utils.decorators import apply_defaults
 from lakefs_sdk.exceptions import NotFoundException
-
 from lakefs_provider.hooks.lakefs_hook import LakeFSHook
-
 
 class LakeFSSenseAndGetCommit(BaseSensorOperator):
     """

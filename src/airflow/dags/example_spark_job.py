@@ -10,9 +10,9 @@ def run_example_job():
     3. Shows the results
     """
     # Initialize Spark session
-    spark = SparkSession.builder \
-        .appName("ExampleSparkJob") \
-        .getOrCreate()
+    spark = (SparkSession.builder
+        .appName("ExampleSparkJob") # type: ignore
+        .getOrCreate())
     
     # Log the Spark version
     print(f"Spark version: {spark.version}")

@@ -76,9 +76,12 @@ RUN mkdir -p $SPARK_HOME/jars && \
 RUN mkdir -p $SPARK_HOME/scripts
 
 # Copy the Kafka Spark Streaming script and startup script
+# Spark apps/jobs
 COPY ./spark-app/spark_app.py $SPARK_HOME/scripts/
+# Other scripts
 COPY ./spark-app/charging_events_stream_processor.py $SPARK_HOME/scripts/
 COPY ./spark-app/lakefs_manager.py $SPARK_HOME/scripts/
+# Scripts
 COPY ./spark-app/start-master.sh $SPARK_HOME/scripts/
 COPY ./spark-app/spark-defaults.conf $SPARK_HOME/conf/
 

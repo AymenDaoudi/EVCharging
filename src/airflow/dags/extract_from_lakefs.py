@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 from airflow.providers.apache.spark.operators.spark_submit import SparkSubmitOperator
-from custom_sensors.lakefs_sense_and_get_commit import LakeFSSenseAndGetCommit
+from lakefs_sense_and_get_commit import LakeFSSenseAndGetCommit
 
 REPOSITORY = os.getenv("LAKEFS_REPOSITORY", "charging-data")
 BRANCH = os.getenv("LAKEFS_BRANCH", "main")
