@@ -1,50 +1,56 @@
-# Airflow with LakeFS Integration
+# Airflow Setup for EV Charging Data Pipeline
 
-This directory contains the Airflow DAGs and plugins for interacting with LakeFS.
+This directory contains the Airflow setup for the EV Charging Data Pipeline project.
 
-## Setup
+## Components
 
-The Airflow services are configured in the main `docker-compose.yml` file and include:
+- **Airflow Webserver**: Web UI for managing and monitoring DAGs
+- **Airflow Scheduler**: Responsible for scheduling and triggering tasks
+- **Postgres Database**: Metadata database for Airflow
 
-1. `airflow-postgres` - PostgreSQL database for Airflow metadata
-2. `airflow-webserver` - Airflow web UI
-3. `airflow-scheduler` - Airflow scheduler
-4. `airflow-init` - Initialization service for Airflow
+## Docker Setup
 
-## Accessing Airflow
+The Airflow services are built using a custom Dockerfile that:
+1. Uses the official Apache Airflow image as a base
+2. Installs system dependencies
+3. Installs Python packages from requirements.txt
 
-Once the services are up and running, you can access the Airflow web UI at:
+## Usage
 
-```
-http://localhost:8090
-```
+1. Start the Airflow services using Docker Compose:
+   ```
+   docker-compose up -d airflow-postgres airflow-webserver airflow-scheduler
+   ```
 
-Default credentials:
-- Username: `admin`
-- Password: `admin`
+2. Access the Airflow UI:
+   - URL: http://localhost:8090
+   - Default username: admin
+   - Default password: admin
 
-## LakeFS Connection
+3. The example DAG (`ev_charging_example`) should be visible in the UI.
 
-The connection to LakeFS is configured using an environment variable in the docker-compose.yml file:
+## Python Dependencies
 
-```
-AIRFLOW_CONN_LAKEFS_DEFAULT=http://AKIAJBWUDLDFGJY36X3Q:sYAuql0Go9qOOQlQNPEw5Cg2AOzLZebnKgMaVyF+@lakefs:8000
-```
+The `requirements.txt` file contains Python packages that will be installed in the Airflow image during build. If you need additional packages for your DAGs, add them to this file and rebuild the image.
 
-This connection is used in the example DAG to interact with LakeFS.
+Current dependencies include:
+- pandas and numpy for data manipulation
+- pyspark for Spark integration
+- pymongo for MongoDB integration
+- python-dotenv for environment variables
+- requests for HTTP requests
+- Airflow provider packages for Spark, MongoDB, and HTTP
+- s3fs and boto3 for S3/MinIO integration
+
+## Adding New DAGs
+
+Place new DAG files in the `dags` directory. They will be automatically picked up by Airflow.
 
 ## Example DAG
 
-The `lakefs_example_dag.py` demonstrates how to:
+The example DAG (`example_dag.py`) demonstrates a simple workflow with three tasks:
+1. A Python task that prints a hello message
+2. A Bash task that prints the current date
+3. A Bash task that echoes a message about processing EV charging data
 
-1. List repositories in LakeFS
-2. Create a new repository if it doesn't exist
-3. Create a new branch in the repository
-
-## Adding Custom DAGs
-
-To add your own DAGs, place them in the `dags` directory. They will be automatically picked up by Airflow.
-
-## Dependencies
-
-If you need additional Python packages for your DAGs, add them to the `plugins/requirements.txt` file. 
+The tasks run in sequence: task_hello → task_date → task_echo 

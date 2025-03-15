@@ -12,10 +12,7 @@ logger = logging.getLogger(__name__)
 # Environment variables
 KAFKA_BOOTSTRAP_SERVERS = os.environ.get("KAFKA_BOOTSTRAP_SERVERS", "kafka:29092")
 CHARGING_EVENTS_TOPIC = os.getenv('CHARGING_EVENTS_TOPIC', 'charging_events')
-MINIO_ACCESS_KEY = os.getenv('MINIO_ACCESS_KEY', 'minioadmin')
-MINIO_SECRET_KEY = os.getenv('MINIO_SECRET_KEY', 'minioadmin')
 REPOSITORY = os.getenv("LAKEFS_REPOSITORY", "charging-data")
-MINIO_ENDPOINT = os.getenv('MINIO_ENDPOINT', 'http://minio:9000')
 LAKEFS_ENDPOINT = os.getenv("LAKEFS_ENDPOINT", "http://lakefs:8000")
 LAKEFS_ACCESS_KEY = os.getenv("LAKEFS_ACCESS_KEY", "AKIAJBWUDLDFGJY36X3Q")
 LAKEFS_SECRET_KEY = os.getenv("LAKEFS_SECRET_KEY", "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")
@@ -29,14 +26,13 @@ schema = StructType([
     StructField("payload", MapType(StringType(), StringType()), True)
 ])
 
-
-
 logger.info("Starting Spark Streaming Job")
 
 # Initialize Spark with Kafka packages
-spark = SparkSession.builder \
-    .appName("KafkaSparkStreaming") \
-    .getOrCreate()
+spark = (SparkSession.builder
+        .appName("KafkaSparkStreaming") # type: ignore
+        .getOrCreate()
+    )
 
 logger.info("Spark Session Created")  
 

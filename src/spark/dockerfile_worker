@@ -1,12 +1,22 @@
 FROM bitnami/spark:latest
 
 # Set up environment variables
+# Java configuration
+ENV JAVA_HOME=/opt/bitnami/java
 # Spark configuration
 ENV SPARK_MODE=worker
-ENV SPARK_WORKER_MEMORY=3g
-ENV SPARK_EXECUTOR_MEMORY=3g
+ENV SPARK_WORKER_MEMORY=2g
+ENV SPARK_EXECUTOR_MEMORY=2g
 ENV SPARK_MASTER_URL=spark://spark-master:7077
 ENV SPARK_HOME=/opt/bitnami/spark
+# Add missing network timeout configuration
+ENV SPARK_NETWORK_TIMEOUT=2000s
+ENV SPARK_RPC_MESSAGE_MAXSIZE=1024
+ENV SPARK_DRIVER_MAXRESULTSIZE=1g
+ENV SPARK_DRIVER_MEMORY=2g
+ENV SPARK_DRIVER_EXTRA_JAVA_OPTIONS=-Dspark.maxRemoteBlockSizeFetchToMem=200m
+# Make sure all JAR files are in the classpath
+ENV SPARK_CLASSPATH="$SPARK_HOME/jars/*"
 ENV PATH="$SPARK_HOME/bin:$PATH"
 # Kafka configuration
 ENV KAFKA_BOOTSTRAP_SERVERS=kafka:29092
@@ -16,6 +26,10 @@ ENV LAKEFS_REPOSITORY=charging-data
 ENV LAKECTL_CREDENTIALS_ACCESS_KEY_ID=AKIAJBWUDLDFGJY36X3Q
 ENV LAKECTL_CREDENTIALS_SECRET_ACCESS_KEY=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
 ENV PYTHONPATH="${SPARK_HOME}/scripts:${PYTHONPATH}"
+# LakeFS S3 configuration
+ENV LAKEFS_ACCESS_KEY=AKIAJBWUDLDFGJY36X3Q
+ENV LAKEFS_SECRET_KEY=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
+ENV LAKEFS_ENDPOINT=http://lakefs:8000
 
 # Create work directory
 WORKDIR $SPARK_HOME
@@ -25,7 +39,7 @@ RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 
 # Install Python packages
 COPY ./spark-app/requirements.txt /tmp/requirements.txt
-RUN pip install --no-cache-dir -r /tmp/requirements.txt
+RUN pip install -r /tmp/requirements.txt
 
 # Download dependencies
 RUN mkdir -p $SPARK_HOME/jars && \
@@ -39,21 +53,36 @@ RUN mkdir -p $SPARK_HOME/jars && \
     curl -o $SPARK_HOME/jars/commons-pool2-2.11.1.jar \
         https://repo1.maven.org/maven2/org/apache/commons/commons-pool2/2.11.1/commons-pool2-2.11.1.jar && \
     # Jetty dependencies
-    curl -o $SPARK_HOME/jars/jetty-util-9.4.48.v20220622.jar \
-        https://repo1.maven.org/maven2/org/eclipse/jetty/jetty-util/9.4.48.v20220622/jetty-util-9.4.48.v20220622.jar && \
-    curl -o $SPARK_HOME/jars/jetty-util-ajax-9.4.48.v20220622.jar \
-        https://repo1.maven.org/maven2/org/eclipse/jetty/jetty-util-ajax/9.4.48.v20220622/jetty-util-ajax-9.4.48.v20220622.jar && \
+    # curl -o $SPARK_HOME/jars/jetty-util-9.4.48.v20220622.jar \
+    #     https://repo1.maven.org/maven2/org/eclipse/jetty/jetty-util/9.4.48.v20220622/jetty-util-9.4.48.v20220622.jar && \
+    # curl -o $SPARK_HOME/jars/jetty-util-ajax-9.4.48.v20220622.jar \
+    #     https://repo1.maven.org/maven2/org/eclipse/jetty/jetty-util-ajax/9.4.48.v20220622/jetty-util-ajax-9.4.48.v20220622.jar && \
+    # AWS Hadoop dependencies
+    # curl -o $SPARK_HOME/jars/hadoop-aws-3.4.1.jar \
+    #     https://repo1.maven.org/maven2/org/apache/hadoop/hadoop-aws/3.4.1/hadoop-aws-3.4.1.jar && \
+    # curl -o $SPARK_HOME/jars/aws-java-sdk-bundle-1.12.782.jar \
+    #     https://repo1.maven.org/maven2/com/amazonaws/aws-java-sdk-bundle/1.12.782/aws-java-sdk-bundle-1.12.782.jar && \
+    # Additional S3A dependencies
+    # curl -o $SPARK_HOME/jars/hadoop-common-3.4.1.jar \
+    #     https://repo1.maven.org/maven2/org/apache/hadoop/hadoop-common/3.4.1/hadoop-common-3.4.1.jar && \
+    # curl -o $SPARK_HOME/jars/hadoop-client-3.4.1.jar \
+    #     https://repo1.maven.org/maven2/org/apache/hadoop/hadoop-client/3.4.1/hadoop-client-3.4.1.jar && \
+    # curl -o $SPARK_HOME/jars/hadoop-client-api-3.4.1.jar \
+    #     https://repo1.maven.org/maven2/org/apache/hadoop/hadoop-client-api/3.4.1/hadoop-client-api-3.4.1.jar && \
+    # curl -o $SPARK_HOME/jars/hadoop-client-runtime-3.4.1.jar \
+    #     https://repo1.maven.org/maven2/org/apache/hadoop/hadoop-client-runtime/3.4.1/hadoop-client-runtime-3.4.1.jar && \
     # LakeFS dependencies
     curl -o $SPARK_HOME/jars/hadoop-lakefs-assembly-0.2.4.jar \
         https://github.com/treeverse/lakeFS/releases/download/v0.1.13/hadoop-lakefs-assembly-0.2.4.jar
 
 # Create directory for scripts
-RUN mkdir -p /opt/bitnami/spark/scripts
+RUN mkdir -p $SPARK_HOME/scripts
 
 # Copy the Python modules needed by workers
 COPY ./spark-app/spark_app.py $SPARK_HOME/scripts/
 COPY ./spark-app/lakefs_manager.py $SPARK_HOME/scripts/
 COPY ./spark-app/charging_events_stream_processor.py $SPARK_HOME/scripts/
+COPY ./spark-app/spark-defaults.conf $SPARK_HOME/conf/
 
 # Set proper permissions
 RUN chown -R 1001:root $SPARK_HOME/jars/ && \

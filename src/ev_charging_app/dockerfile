@@ -18,7 +18,7 @@ COPY ./services ./services
 COPY ./repositories ./repositories
 COPY ./entities ./entities
 
-RUN pip install --no-cache-dir -r ./app/requirements.txt
+RUN pip install -r ./app/requirements.txt
 
 # Set the entrypoint / default command to run
 CMD ["python", "app/main.py"]
