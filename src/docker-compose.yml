@@ -1,131 +1,130 @@
 name: data
 services:
+  # mongo-db:
+  #   build:
+  #     context: ./MongoDb/MongoNode
+  #     dockerfile: dockerfile
+  #   container_name: mongo-db
+  #   environment:
+  #     - DB_NAME=Db
+  #     - DB_USER=User
+  #     - DB_PASS=Pass
+  #     - MONGO_INITDB_ROOT_USERNAME=admin
+  #     - MONGO_INITDB_ROOT_PASSWORD=admin
+  #     - MONGO_INITDB_DATABASE=InitDb
+  #     - EXPERIMENTAL_DOCKER_DESKTOP_FORCE_QEMU=1 # This is required on Apple Silicon https://github.com/docker/for-mac/issues/6620
+  #   ports:
+  #     - 27017:27017
+  #   extra_hosts:
+  #     - "host.docker.internal:host-gateway"
+  #   command: mongod --port 27017 --config /etc/mongod.conf --bind_ip_all
+  #   restart: always
+  #   healthcheck:
+  #     test: echo 'db.runCommand({serverStatus:1}).ok' | mongosh admin -u $$MONGO_INITDB_ROOT_USERNAME -p $$MONGO_INITDB_ROOT_PASSWORD --quiet --port 27017 | grep 1
+  #     interval: 20s
+  #     timeout: 20s
+  #     retries: 3
+  #   volumes:
+  #     - mongodb_data:/data/db
+  #     - ./MongoDb/Data:/data
+  #   networks:
+  #     - localnet
 
-  mongo-db:
-    build:
-      context: ./MongoDb/MongoNode
-      dockerfile: dockerfile
-    container_name: mongo-db
-    environment:
-      - DB_NAME=Db
-      - DB_USER=User
-      - DB_PASS=Pass
-      - MONGO_INITDB_ROOT_USERNAME=admin
-      - MONGO_INITDB_ROOT_PASSWORD=admin
-      - MONGO_INITDB_DATABASE=InitDb
-      - EXPERIMENTAL_DOCKER_DESKTOP_FORCE_QEMU=1 # This is required on Apple Silicon https://github.com/docker/for-mac/issues/6620
-    ports:
-      - 27017:27017
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    command: mongod --port 27017 --config /etc/mongod.conf --bind_ip_all
-    restart: always
-    healthcheck:
-      test: echo 'db.runCommand({serverStatus:1}).ok' | mongosh admin -u $$MONGO_INITDB_ROOT_USERNAME -p $$MONGO_INITDB_ROOT_PASSWORD --quiet --port 27017 | grep 1
-      interval: 20s
-      timeout: 20s
-      retries: 3
-    volumes:
-      - mongodb_data:/data/db
-      - ./MongoDb/Data:/data
-    networks:
-      - localnet
+  # mongo-express:
+  #   build:
+  #     context: ./MongoDb/MongoExpress
+  #     dockerfile: dockerfile
+  #   container_name: db-explorer
+  #   environment:
+  #     - ME_CONFIG_MONGODB_SERVER=mongo-db
+  #     - ME_CONFIG_MONGODB_PORT=27017
+  #     - ME_CONFIG_MONGODB_ADMINUSERNAME=admin
+  #     - ME_CONFIG_MONGODB_ADMINPASSWORD=admin
+  #     - ME_CONFIG_BASICAUTH_USERNAME=admin
+  #     - ME_CONFIG_BASICAUTH_PASSWORD=admin
+  #     - PORT=8082
+  #   ports:
+  #     - 8085:8082
+  #   depends_on:
+  #     mongo-db:
+  #       condition: service_healthy
+  #   networks:
+  #     - localnet
 
-  mongo-express:
-    build:
-      context: ./MongoDb/MongoExpress
-      dockerfile: dockerfile
-    container_name: db-explorer
-    environment:
-      - ME_CONFIG_MONGODB_SERVER=mongo-db
-      - ME_CONFIG_MONGODB_PORT=27017
-      - ME_CONFIG_MONGODB_ADMINUSERNAME=admin
-      - ME_CONFIG_MONGODB_ADMINPASSWORD=admin
-      - ME_CONFIG_BASICAUTH_USERNAME=admin
-      - ME_CONFIG_BASICAUTH_PASSWORD=admin
-      - PORT=8082
-    ports:
-      - 8085:8082
-    depends_on:
-      mongo-db:
-        condition: service_healthy
-    networks:
-      - localnet
+  # zookeeper:
+  #   image: confluentinc/cp-zookeeper:latest
+  #   hostname: zookeeper
+  #   container_name: zookeeper
+  #   ports:
+  #     - "2181:2181"
+  #   env_file:
+  #     - path: ./Kafka/zookeeper/.env
+  #   healthcheck:
+  #     test: nc -z localhost 2181
+  #     interval: 10s
+  #     timeout: 20s
+  #     retries: 5
+  #   networks:
+  #     - localnet
 
-  zookeeper:
-    image: confluentinc/cp-zookeeper:latest
-    hostname: zookeeper
-    container_name: zookeeper
-    ports:
-      - "2181:2181"
-    env_file:
-      - path: ./Kafka/zookeeper/.env
-    healthcheck:
-      test: nc -z localhost 2181
-      interval: 10s
-      timeout: 20s
-      retries: 5
-    networks:
-      - localnet
+  # kafka:
+  #   build: 
+  #     context: ./Kafka/kafka-broker
+  #     dockerfile: dockerfile
+  #   hostname: kafka
+  #   container_name: kafka
+  #   depends_on:
+  #     zookeeper:
+  #       condition: service_healthy
+  #   ports:
+  #     - "9092:9092"
+  #     - "9101:9101"
+  #   restart: always
+  #   env_file:
+  #     - path: ./Kafka/kafka-broker/.env
+  #   healthcheck:
+  #     test: ["CMD", "/etc/confluent/docker/healthcheck.sh"]
+  #     interval: 10s
+  #     timeout: 20s
+  #     retries: 5
+  #   networks:
+  #     - localnet
 
-  kafka:
-    build: 
-      context: ./Kafka/kafka-broker
-      dockerfile: dockerfile
-    hostname: kafka
-    container_name: kafka
-    depends_on:
-      zookeeper:
-        condition: service_healthy
-    ports:
-      - "9092:9092"
-      - "9101:9101"
-    restart: always
-    env_file:
-      - path: ./Kafka/kafka-broker/.env
-    healthcheck:
-      test: ["CMD", "/etc/confluent/docker/healthcheck.sh"]
-      interval: 10s
-      timeout: 20s
-      retries: 5
-    networks:
-      - localnet
+  # control-center:
+  #   image: confluentinc/cp-enterprise-control-center:latest
+  #   hostname: control-center
+  #   container_name: control-center
+  #   depends_on:
+  #     # schema-registry:
+  #     #   condition: service_healthy
+  #     kafka:
+  #       condition: service_healthy
+  #   ports:
+  #     - "9021:9021"
+  #   restart: always
+  #   env_file:
+  #     - path: ./Kafka/kafka-control-center/.env
+  #   networks:
+  #     - localnet
 
-  control-center:
-    image: confluentinc/cp-enterprise-control-center:latest
-    hostname: control-center
-    container_name: control-center
-    depends_on:
-      # schema-registry:
-      #   condition: service_healthy
-      kafka:
-        condition: service_healthy
-    ports:
-      - "9021:9021"
-    restart: always
-    env_file:
-      - path: ./Kafka/kafka-control-center/.env
-    networks:
-      - localnet
-
-  charging-stations:
-    build:
-      context: ./ev_charging_app
-      dockerfile: dockerfile
-    depends_on:
-      kafka:
-        condition: service_healthy
-      mongo-db:
-        condition: service_healthy
-      # db-replicaset:
-      #   condition: service_healthy
-    environment:
-      SIM_DURATION: 100.0
-      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
-      CHARGING_EVENTS_TOPIC: ev_charging_events
-      MONGO_URI: mongodb://User:Pass@mongo-db:27017/Db
-    networks:
-      - localnet
+  # charging-stations:
+  #   build:
+  #     context: ./ev_charging_app
+  #     dockerfile: dockerfile
+  #   depends_on:
+  #     kafka:
+  #       condition: service_healthy
+  #     mongo-db:
+  #       condition: service_healthy
+  #     # db-replicaset:
+  #     #   condition: service_healthy
+  #   environment:
+  #     SIM_DURATION: 100.0
+  #     KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+  #     CHARGING_EVENTS_TOPIC: ev_charging_events
+  #     MONGO_URI: mongodb://User:Pass@mongo-db:27017/Db
+  #   networks:
+  #     - localnet
 
   spark-master:
     build:
@@ -134,9 +133,9 @@ services:
     container_name: spark-master
     environment:
       - SPARK_MASTER_HOST=spark-master
-    depends_on:
-      kafka:
-        condition: service_healthy
+    # depends_on:
+    #   kafka:
+    #     condition: service_healthy
     ports:
       - "8080:8080"  # Spark Web UI
       - "7077:7077"  # Spark Master Port

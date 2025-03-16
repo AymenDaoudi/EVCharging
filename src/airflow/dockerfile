@@ -15,8 +15,15 @@ RUN apt-get update && \
 ENV JAVA_HOME=/usr/lib/jvm/default-java
 ENV PATH=$PATH:$JAVA_HOME/bin
 
+# Set lakeFS environment variables
+ENV LAKEFS_ENDPOINT=http://lakefs:8000
+ENV LAKEFS_ACCESS_KEY=AKIAJBWUDLDFGJY36X3Q
+ENV LAKEFS_SECRET_KEY=sYAuql0Go9qOOQlQNPEw5Cg2AOzLZebnKgMaVyF+
+
 # Copy requirements file and setup script
 COPY ./dags/example_spark_job.py /opt/airflow/spark/example_spark_job.py
+COPY ./dags/lakefs_sense_and_get_commit.py /opt/airflow/spark/lakefs_sense_and_get_commit.py
+COPY ./dags/transform_lakefs_data_job.py /opt/airflow/spark/transform_lakefs_data_job.py
 COPY requirements.txt /requirements.txt
 COPY setup_connections.sh /setup_connections.sh
 

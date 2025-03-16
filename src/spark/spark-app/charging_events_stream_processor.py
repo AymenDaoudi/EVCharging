@@ -1,6 +1,6 @@
 import logging
-from pyspark.sql.functions import udf, col
-from pyspark.sql.types import IntegerType
+from pyspark.sql.functions import udf, col, lit
+from pyspark.sql.types import IntegerType, StructType, StructField, StringType
 from lakefs_manager import create_branch, commit_to_branch
 import logging
 from pyspark.sql.functions import from_json, col
@@ -82,42 +82,100 @@ def write_to_branch_and_commit(df):
 
 def ingest_charging_events_data(spark, schema):
     
-    logger.info("Reading from Kafka")
-    # Read stream from Kafka
-    df_kafka = spark.readStream \
-        .format("kafka") \
-        .option("kafka.bootstrap.servers", KAFKA_BOOTSTRAP_SERVERS) \
-        .option("subscribe", CHARGING_EVENTS_TOPIC) \
-        .option("startingOffsets", "earliest") \
-        .option("maxOffsetsPerTrigger", 1000) \
-        .option("failOnDataLoss", "false") \
-        .load()
-
-    # Extract JSON from Kafka message
-    df = df_kafka.select(from_json(col("value").cast("string"), schema).alias("data"))
-
-    # Flatten the structure
-    df = df.select(
-        col("data.event_type").alias("event_type"),
-        col("data.session_id").alias("session_id"),
-        col("data.session_number").alias("session_number"),
-        col("data.station_id").alias("station_id"),
-        col("data.ev_id").alias("ev_id"),
-        col("data.payload").alias("payload")
-    )
-
-    logger.info("Successfully connected to Kafka topic")
+    logger.info("Creating test DataFrame for S3AFileSystem test")
     
-    # Write to Azure Blob Storage
-    blob_query = df.writeStream \
-        .foreachBatch(process_batch) \
-        .trigger(processingTime='5 seconds') \
-        .start()
+    # Create a test DataFrame
+    test_schema = StructType([
+        StructField("event_type", StringType(), True),
+        StructField("session_id", StringType(), True),
+        StructField("session_number", IntegerType(), True),
+        StructField("station_id", StringType(), True),
+        StructField("ev_id", StringType(), True),
+        StructField("payload", StringType(), True)
+    ])
     
-    logger.info("Queries Started")
+    # Create a simple test DataFrame with one row
+    test_data = [(
+        "TEST_EVENT", 
+        "test-session-123", 
+        1001, 
+        "station-001", 
+        "ev-001", 
+        "{\"test\": \"payload\"}"
+    )]
     
-    # Wait for both queries to terminate
-    blob_query.awaitTermination()
+    test_df = spark.createDataFrame(test_data, test_schema)
+    
+    # Log the test DataFrame
+    logger.info("Created test DataFrame:")
+    test_df.show()
+    
+    # Write the test DataFrame to a Parquet file on the main branch
+    test_file_path = f"s3a://{REPOSITORY}/main/test-data/test_file.parquet"
+    
+    try:
+        logger.info(f"Writing test DataFrame to {test_file_path}")
+        test_df.write \
+            .format("parquet") \
+            .mode("overwrite") \
+            .save(test_file_path)
+        logger.info("Successfully wrote test DataFrame to Parquet file")
+        
+        # Commit the test data to the main branch
+        logger.info("Committing test data to main branch")
+        commit_to_branch(REPOSITORY, "main", "Adding test data file")
+        logger.info("Successfully committed test data to main branch")
+        
+        # Try to read the Parquet file back
+        logger.info(f"Reading test DataFrame from {test_file_path}")
+        read_df = spark.read \
+            .format("parquet") \
+            .load(test_file_path)
+        
+        logger.info("Successfully read test DataFrame from Parquet file:")
+        read_df.show()
+        
+    except Exception as e:
+        logger.error(f"Error during S3AFileSystem test: {str(e)}")
+        logger.exception("Full exception details:")
+    
+    # # Continue with the original Kafka streaming logic if needed
+    # logger.info("Reading from Kafka")
+    # # Read stream from Kafka
+    # df_kafka = spark.readStream \
+    #     .format("kafka") \
+    #     .option("kafka.bootstrap.servers", KAFKA_BOOTSTRAP_SERVERS) \
+    #     .option("subscribe", CHARGING_EVENTS_TOPIC) \
+    #     .option("startingOffsets", "earliest") \
+    #     .option("maxOffsetsPerTrigger", 1000) \
+    #     .option("failOnDataLoss", "false") \
+    #     .load()
+
+    # # Extract JSON from Kafka message
+    # df = df_kafka.select(from_json(col("value").cast("string"), schema).alias("data"))
+
+    # # Flatten the structure
+    # df = df.select(
+    #     col("data.event_type").alias("event_type"),
+    #     col("data.session_id").alias("session_id"),
+    #     col("data.session_number").alias("session_number"),
+    #     col("data.station_id").alias("station_id"),
+    #     col("data.ev_id").alias("ev_id"),
+    #     col("data.payload").alias("payload")
+    # )
+
+    # logger.info("Successfully connected to Kafka topic")
+    
+    # # Write to Azure Blob Storage
+    # blob_query = df.writeStream \
+    #     .foreachBatch(process_batch) \
+    #     .trigger(processingTime='5 seconds') \
+    #     .start()
+    
+    # logger.info("Queries Started")
+    
+    # # Wait for both queries to terminate
+    # blob_query.awaitTermination()
 
 def process_batch(data_frame, batch_id):
     

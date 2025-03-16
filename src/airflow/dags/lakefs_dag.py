@@ -46,7 +46,7 @@ def process_commit(**kwargs):
     # Here, you could also trigger further processing, like a Spark job
 
 with DAG(
-    'extract_from_lakefs',
+    'lakefs_dag',
     default_args=default_args,
     description='Detects a merge to the main branch and extracts the data from the lakefs repo',
     schedule_interval=timedelta(seconds=20),
@@ -74,17 +74,21 @@ with DAG(
     # Define the Spark job to transform data using the commit_id
     spark_transform_task = SparkSubmitOperator(
         task_id='spark_transform',
-        application='/opt/bitnami/airflow/spark_apps/transform_lakefs_data.py',
+        application='/opt/airflow/spark/transform_lakefs_data_job.py',
         conn_id='spark_default',
-        executor_memory="2g",
-        driver_memory="2g",
+        name='transform_lakefs_data',
         application_args=[
             '--commit_id', "{{ task_instance.xcom_pull(task_ids='sense_commit').get('id') }}",
             '--repository', default_args['repo'],
             '--branch', default_args['branch']
         ],
-        jars='/opt/bitnami/spark/jars/hadoop-aws-3.3.4.jar,/opt/bitnami/spark/jars/aws-java-sdk-bundle-1.12.262.jar',
         conf={
+            'spark.hadoop.fs.s3a.log.level': 'DEBUG',
+            'spark.master': 'spark://spark-master:7077',
+            'spark.driver.memory': '1g',
+            'spark.executor.memory': '1g',
+            'spark.executor.cores': '1',
+            'spark.driver.cores': '1',
             'spark.hadoop.fs.s3a.impl': 'org.apache.hadoop.fs.s3a.S3AFileSystem',
             'spark.hadoop.fs.s3a.endpoint': LAKEFS_ENDPOINT,
             'spark.hadoop.fs.s3a.access.key': LAKEFS_ACCESS_KEY,
@@ -94,11 +98,12 @@ with DAG(
             'spark.hadoop.fs.s3a.aws.credentials.provider': 'org.apache.hadoop.fs.s3a.SimpleAWSCredentialsProvider',
             'spark.hadoop.fs.s3a.change.detection.mode': 'none',
             'spark.hadoop.fs.s3a.committer.magic.enabled': 'true',
-            'spark.driver.userClassPathFirst': 'true',
-            'spark.executor.userClassPathFirst': 'true',
-            'spark.driver.extraClassPath': '/opt/bitnami/spark/jars/*',
-            'spark.executor.extraClassPath': '/opt/bitnami/spark/jars/*'
+            'spark.driver.userClassPathFirst': 'false',
+            'spark.executor.userClassPathFirst': 'false',
+            'spark.driver.extraClassPath': '/opt/bitnami/spark/jars/hadoop-aws-3.3.4.jar,/opt/bitnami/spark/jars/aws-java-sdk-bundle-1.12.262.jar,/opt/bitnami/spark/jars/hadoop-common-3.3.4.jar,/opt/bitnami/spark/jars/hadoop-client-3.3.4.jar',
+            'spark.executor.extraClassPath': '/opt/bitnami/spark/jars/hadoop-aws-3.3.4.jar,/opt/bitnami/spark/jars/aws-java-sdk-bundle-1.12.262.jar,/opt/bitnami/spark/jars/hadoop-common-3.3.4.jar,/opt/bitnami/spark/jars/hadoop-client-3.3.4.jar'
         },
+        packages='org.apache.hadoop:hadoop-aws:3.3.4,org.apache.hadoop:hadoop-common:3.3.4,org.apache.hadoop:hadoop-client:3.3.4',
         verbose=True
     )
 

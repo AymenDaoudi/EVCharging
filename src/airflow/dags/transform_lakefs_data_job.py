@@ -13,6 +13,8 @@ from lakefs_client.client import LakeFSClient
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+REPOSITORY = os.getenv("LAKEFS_REPOSITORY", "charging-data")
+BRANCH = os.getenv("LAKEFS_BRANCH", "main")
 LAKEFS_ENDPOINT = os.getenv("LAKEFS_ENDPOINT", "http://lakefs:8000")
 LAKEFS_ACCESS_KEY = os.getenv("LAKEFS_ACCESS_KEY", "AKIAJBWUDLDFGJY36X3Q")
 LAKEFS_SECRET_KEY = os.getenv("LAKEFS_SECRET_KEY", "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")
@@ -33,13 +35,11 @@ def create_spark_session():
     # Create a SparkSession
     spark = (SparkSession.builder
         .appName("LakeFS Data Transformer") # type: ignore
-        .master("spark://spark-master:7077")
-        .config("spark.driver.extraClassPath", "/opt/bitnami/spark/jars/*")
-        .config("spark.executor.extraClassPath", "/opt/bitnami/spark/jars/*")
+        # .master("spark://spark-master:7077")
+        .config("spark.driver.extraClassPath", "/opt/bitnami/spark/jars/hadoop-aws-3.3.4.jar,/opt/bitnami/spark/jars/aws-java-sdk-bundle-1.12.262.jar")
+        .config("spark.executor.extraClassPath", "/opt/bitnami/spark/jars/hadoop-aws-3.3.4.jar,/opt/bitnami/spark/jars/aws-java-sdk-bundle-1.12.262.jar")
         # Add the Hadoop AWS JAR to the classpath
         .config("spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem")
-        # Specify the exact paths to the required JARs
-        .config("spark.jars", "/opt/bitnami/spark/jars/hadoop-aws-3.3.4.jar,/opt/bitnami/spark/jars/aws-java-sdk-bundle-1.12.262.jar")
         # Add S3A configuration
         .config("spark.hadoop.fs.s3a.endpoint", LAKEFS_ENDPOINT)
         .config("spark.hadoop.fs.s3a.access.key", LAKEFS_ACCESS_KEY)
@@ -53,36 +53,6 @@ def create_spark_session():
     # Log Spark configuration for debugging
     logger.info("Spark session created with the following configurations:")
     logger.info(f"Spark version: {spark.version}")
-    
-    # Log S3A configuration to verify it's properly set
-    try:
-        s3a_impl = spark.conf.get("spark.hadoop.fs.s3a.impl")
-        logger.info(f"S3A implementation: {s3a_impl}")
-        logger.info(f"S3A endpoint: {spark.conf.get('spark.hadoop.fs.s3a.endpoint')}")
-        logger.info(f"Path style access: {spark.conf.get('spark.hadoop.fs.s3a.path.style.access')}")
-        logger.info(f"AWS credentials provider: {spark.conf.get('spark.hadoop.fs.s3a.aws.credentials.provider')}")
-        
-        # List available classes to verify S3AFileSystem is available
-        logger.info("Checking if S3AFileSystem class is available in the classpath")
-        try:
-            from py4j.java_gateway import JavaClass
-            s3a_class = spark._jvm.org.apache.hadoop.fs.s3a.S3AFileSystem
-            logger.info(f"S3AFileSystem class found: {s3a_class}")
-        except Exception as e:
-            logger.error(f"S3AFileSystem class not found: {str(e)}")
-            
-        # List all available Hadoop filesystem implementations
-        try:
-            logger.info("Listing available Hadoop filesystem implementations:")
-            hadoop_conf = spark._jsc.hadoopConfiguration()
-            fs_impls = hadoop_conf.getValByRegex("fs\\..*\\.impl")
-            for key in fs_impls.keySet().toArray():
-                logger.info(f"  {key}: {fs_impls.get(key)}")
-        except Exception as e:
-            logger.error(f"Could not list filesystem implementations: {str(e)}")
-            
-    except Exception as e:
-        logger.warning(f"Could not retrieve S3A configuration: {str(e)}")
     
     return spark
 
@@ -146,9 +116,47 @@ def get_lakefs_path(repository: str, commit_id: str, path: str):
     where <ref> can be a branch name, commit ID, or tag.
     """
     logger.info(f"Constructing LakeFS path for repo: {repository}, commit: {commit_id}, path: {path}")
-    lakefs_path = f"s3a://{repository}/{commit_id}/{path}"
+    lakefs_path = f"s3a://{repository}/main/{path}"
     logger.info(f"Using LakeFS path: {lakefs_path}")
     return lakefs_path
+
+def test_s3a_file_system(spark, repository):
+    """
+    Test if we can read the test file created by the streaming processor.
+    This helps diagnose S3AFileSystem issues.
+    """
+    logger.info("=== TESTING S3A FILE SYSTEM FUNCTIONALITY ===")
+    
+    # Use the same path as in the streaming processor
+    test_file_path = f"s3a://{repository}/main/test-data/test_file.parquet"
+    
+    try:
+        logger.info(f"Attempting to read test file from: {test_file_path}")
+        
+        # Try to read the file
+        test_df = spark.read.format("parquet").load(test_file_path)
+        
+        logger.info("Successfully read test file!")
+        logger.info("Test DataFrame contents:")
+        test_df.show()
+        
+        # Print Spark configuration for debugging
+        logger.info("Current Spark configuration:")
+        for conf in spark.sparkContext.getConf().getAll():
+            logger.info(f"  {conf[0]}: {conf[1]}")
+            
+        return True
+        
+    except Exception as e:
+        logger.error(f"Error reading test file: {str(e)}")
+        logger.exception("Full exception details:")
+        
+        # Print Spark configuration for debugging
+        logger.info("Current Spark configuration:")
+        for conf in spark.sparkContext.getConf().getAll():
+            logger.info(f"  {conf[0]}: {conf[1]}")
+            
+        return False
 
 def main():
     """Main entry point for the Spark application."""
@@ -173,6 +181,14 @@ def main():
     spark = create_spark_session()
     
     try:
+        # Test S3A file system functionality first
+        s3a_test_result = test_s3a_file_system(spark, args.repository)
+        
+        if not s3a_test_result:
+            logger.error("S3A file system test failed. Aborting job.")
+            spark.stop()
+            sys.exit(1)
+        
         # Create LakeFS client
         lakefs_client = get_lakefs_client(
             args.lakefs_host, 

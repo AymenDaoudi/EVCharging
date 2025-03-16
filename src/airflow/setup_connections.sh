@@ -12,4 +12,12 @@ airflow connections add 'spark_default' \
     --conn-port '7077' \
     --conn-extra '{"queue": "default"}'
 
+# Add LakeFS connection
+echo "Adding LakeFS connection..."
+airflow connections add 'lakefs_conn' \
+    --conn-type 'http' \
+    --conn-host "${LAKEFS_ENDPOINT:-http://lakefs:8000}" \
+    --conn-login "${LAKEFS_ACCESS_KEY:-AKIAJBWUDLDFGJY36X3Q}" \
+    --conn-password "${LAKEFS_SECRET_KEY:-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}"
+
 echo "Connections setup completed!" 

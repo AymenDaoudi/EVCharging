@@ -1,8 +1,15 @@
 from datetime import datetime, timedelta
+import os
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 from airflow.operators.bash import BashOperator
 from airflow.providers.apache.spark.operators.spark_submit import SparkSubmitOperator
+
+REPOSITORY = os.getenv("LAKEFS_REPOSITORY", "charging-data")
+BRANCH = os.getenv("LAKEFS_BRANCH", "main")
+LAKEFS_ENDPOINT = os.getenv("LAKEFS_ENDPOINT", "http://lakefs:8000")
+LAKEFS_ACCESS_KEY = os.getenv("LAKEFS_ACCESS_KEY", "AKIAJBWUDLDFGJY36X3Q")
+LAKEFS_SECRET_KEY = os.getenv("LAKEFS_SECRET_KEY", "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")
 
 # Default arguments for the DAG
 default_args = {
@@ -12,6 +19,9 @@ default_args = {
     'email_on_retry': False,
     'retries': 1,
     'retry_delay': timedelta(minutes=5),
+    'repo': REPOSITORY,
+    'branch': BRANCH,
+    'default-branch': BRANCH
 }
 
 # Define the DAG
@@ -41,12 +51,27 @@ submit_spark_job = SparkSubmitOperator(
     verbose=True,
     # Spark connection details
     # These match the configuration in the docker-compose.yml file
+    application_args=[
+        '--repository', default_args['repo'],
+        '--branch', default_args['branch']
+    ],
     conf={
+        'spark.hadoop.fs.s3a.log.level': 'DEBUG',
         'spark.master': 'spark://spark-master:7077',
         'spark.driver.memory': '1g',
         'spark.executor.memory': '1g',
         'spark.executor.cores': '1',
         'spark.driver.cores': '1',
+        'spark.hadoop.fs.s3a.impl': 'org.apache.hadoop.fs.s3a.S3AFileSystem',
+        'spark.hadoop.fs.s3a.endpoint': LAKEFS_ENDPOINT,
+        'spark.hadoop.fs.s3a.access.key': LAKEFS_ACCESS_KEY,
+        'spark.hadoop.fs.s3a.secret.key': LAKEFS_SECRET_KEY,
+        'spark.hadoop.fs.s3a.path.style.access': 'true',
+        'spark.hadoop.fs.s3a.connection.ssl.enabled': 'false',
+        'spark.hadoop.fs.s3a.aws.credentials.provider': 'org.apache.hadoop.fs.s3a.SimpleAWSCredentialsProvider',
+        'spark.hadoop.fs.s3a.change.detection.mode': 'none',
+        'spark.hadoop.fs.s3a.committer.magic.enabled': 'true',
+        'spark.jars.packages': 'org.apache.hadoop:hadoop-aws:3.3.4,com.amazonaws:aws-java-sdk-bundle:1.12.262,org.apache.hadoop:hadoop-common:3.3.4,org.apache.hadoop:hadoop-client:3.3.4'
     },
     dag=dag,
 )
