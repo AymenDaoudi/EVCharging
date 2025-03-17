@@ -26,20 +26,25 @@ schema = StructType([
     StructField("payload", MapType(StringType(), StringType()), True)
 ])
 
-logger.info("Starting Spark Streaming Job")
+def main():
+    
+    logger.info("Starting spark kafka streaming job.")
 
-# Initialize Spark with Kafka packages
-spark = (SparkSession.builder
-        .appName("KafkaSparkStreaming") # type: ignore
-        .getOrCreate()
-    )
+    # Initialize Spark with Kafka packages
+    spark = (SparkSession.builder
+            .appName("KafkaSparkStreaming") # type: ignore
+            .getOrCreate()
+        )
 
-logger.info("Spark Session Created")  
+    logger.info("Spark Session Created")  
 
-try:
-    ingest_charging_events_data(spark, schema)
-    logger.info("Queries Ended")
+    try:
+        ingest_charging_events_data(spark, schema)
+        logger.info("Queries Ended")
 
-except Exception as e:
-    logger.error(f"An error occurred: {str(e)}")
-    spark.stop()
+    except Exception as e:
+        logger.error(f"An error occurred: {str(e)}")
+        spark.stop()
+        
+if __name__ == "__main__":
+    main()

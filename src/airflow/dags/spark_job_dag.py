@@ -71,7 +71,7 @@ submit_spark_job = SparkSubmitOperator(
         'spark.hadoop.fs.s3a.aws.credentials.provider': 'org.apache.hadoop.fs.s3a.SimpleAWSCredentialsProvider',
         'spark.hadoop.fs.s3a.change.detection.mode': 'none',
         'spark.hadoop.fs.s3a.committer.magic.enabled': 'true',
-        'spark.jars.packages': 'org.apache.hadoop:hadoop-aws:3.3.4,com.amazonaws:aws-java-sdk-bundle:1.12.262,org.apache.hadoop:hadoop-common:3.3.4,org.apache.hadoop:hadoop-client:3.3.4'
+        'spark.jars.packages': 'org.apache.hadoop:hadoop-aws:3.3.4'
     },
     dag=dag,
 )

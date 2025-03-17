@@ -53,7 +53,7 @@ class ChargingSessionService:
             self.kafka_repository.publish(arrival_message, CHARGING_EVENTS_TOPIC)
             
             # Simulate charging time (between 10 and 30 minutes)
-            charging_time = random.uniform(10, 30)
+            charging_time = random.uniform(2, 5)
             yield env.timeout(charging_time)
             
             # Simulate charging completion
@@ -74,7 +74,7 @@ class ChargingSessionService:
             self.kafka_repository.publish(completion_message, CHARGING_EVENTS_TOPIC)
             
             # Wait for next EV (between 5 and 15 minutes)
-            yield env.timeout(random.uniform(5, 15))
+            yield env.timeout(random.uniform(1, 5))
 
     # def start_charging_session(
     #     self, 

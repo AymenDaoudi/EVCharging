@@ -1,5 +1,4 @@
 import os
-
 from pymongo import MongoClient
 from repositories.db_repositories.charging_stations_repository import ChargingStationsRepository
 from repositories.db_repositories.ev_repository import EVRepository

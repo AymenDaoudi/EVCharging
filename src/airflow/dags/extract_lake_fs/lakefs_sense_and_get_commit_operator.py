@@ -1,13 +1,12 @@
-from typing import Any, Dict, Union
+from typing import Any, Union
 
 from airflow.sensors.base import BaseSensorOperator
 from airflow.utils.decorators import apply_defaults
-from lakefs_sdk.exceptions import NotFoundException
 from lakefs_provider.hooks.lakefs_hook import LakeFSHook
 
-class LakeFSSenseAndGetCommit(BaseSensorOperator):
+class LakeFSSenseAndGetCommitOperator(BaseSensorOperator):
     """
-    Senses for a commit on a branch and then gets the commit details.
+    Senses for a commit on a branch and then returns the commit details.
 
     :param lakefs_conn_id: The connection to run the sensor against
     :type lakefs_conn_id: str

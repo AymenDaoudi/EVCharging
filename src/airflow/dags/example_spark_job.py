@@ -31,16 +31,16 @@ def create_spark_session():
     # Create a SparkSession
     spark = (SparkSession.builder
         .appName("ExampleSparkJob") # type: ignore
-        .config("spark.jars.packages", "org.apache.hadoop:hadoop-aws:3.3.4,com.amazonaws:aws-java-sdk-bundle:1.12.262,org.apache.hadoop:hadoop-common:3.3.4,org.apache.hadoop:hadoop-client:3.3.4")
-        # Add the Hadoop AWS JAR to the classpath
-        .config("spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem")
-        # Add S3A configuration
-        .config("spark.hadoop.fs.s3a.endpoint", LAKEFS_ENDPOINT)
-        .config("spark.hadoop.fs.s3a.access.key", LAKEFS_ACCESS_KEY)
-        .config("spark.hadoop.fs.s3a.secret.key", LAKEFS_SECRET_KEY)
-        .config("spark.hadoop.fs.s3a.path.style.access", "true")
-        .config("spark.hadoop.fs.s3a.connection.ssl.enabled", "false")
-        .config("spark.hadoop.fs.s3a.aws.credentials.provider", "org.apache.hadoop.fs.s3a.SimpleAWSCredentialsProvider")
+        # .config("spark.jars.packages", "org.apache.hadoop:hadoop-aws:3.3.4,com.amazonaws:aws-java-sdk-bundle:1.12.262,org.apache.hadoop:hadoop-common:3.3.4,org.apache.hadoop:hadoop-client:3.3.4")
+        # # Add the Hadoop AWS JAR to the classpath
+        # .config("spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem")
+        # # Add S3A configuration
+        # .config("spark.hadoop.fs.s3a.endpoint", LAKEFS_ENDPOINT)
+        # .config("spark.hadoop.fs.s3a.access.key", LAKEFS_ACCESS_KEY)
+        # .config("spark.hadoop.fs.s3a.secret.key", LAKEFS_SECRET_KEY)
+        # .config("spark.hadoop.fs.s3a.path.style.access", "true")
+        # .config("spark.hadoop.fs.s3a.connection.ssl.enabled", "false")
+        # .config("spark.hadoop.fs.s3a.aws.credentials.provider", "org.apache.hadoop.fs.s3a.SimpleAWSCredentialsProvider")
         .getOrCreate()
     )
     

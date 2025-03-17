@@ -6,7 +6,7 @@ from repositories.kafka_repositories.kafka_repository import KafkaRepository
 from services.charging_session_service import ChargingSessionService
 
 CHARGING_EVENTS_TOPIC = os.getenv('CHARGING_EVENTS_TOPIC', 'charging_events')
-SIM_DURATION = float(os.getenv('SIM_DURATION', 100.0))
+SIM_DURATION = float(os.getenv('SIM_DURATION', 10))
 
 class SimulationService:
     def __init__(self,
@@ -41,7 +41,12 @@ class SimulationService:
         print("simpy environment created...")
         env = simpy.Environment() # type: ignore
         
-        for station_id in charging_station_ids:
+        
+        # temporary
+        
+        limited_charging_station_ids = charging_station_ids[:10]
+        
+        for station_id in limited_charging_station_ids:
             print(f"Starting charging session for station {station_id}...")
             env.process(
                 self.charging_session_service.charging_sessions(

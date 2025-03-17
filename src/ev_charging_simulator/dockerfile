@@ -1,7 +1,7 @@
 # Use the official Python base image
 FROM python:3.11-slim
 
-ENV SIM_DURATION=100.0
+ENV SIM_DURATION=10
 ENV KAFKA_BOOTSTRAP_SERVERS=kafka:29092
 ENV CHARGING_EVENTS_TOPIC=ev_charging_events
 ENV MONGO_URI=mongodb://User:Pass@mongo-db:27017/Db
