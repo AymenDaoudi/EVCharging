@@ -20,4 +20,14 @@ airflow connections add 'lakefs_conn' \
     --conn-login "${LAKEFS_ACCESS_KEY:-AKIAJBWUDLDFGJY36X3Q}" \
     --conn-password "${LAKEFS_SECRET_KEY:-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}"
 
+# Add ClickHouse connection
+echo "Adding ClickHouse connection..."
+airflow connections add 'clickhouse_conn' \
+    --conn-type 'http' \
+    --conn-host 'clickhouse' \
+    --conn-port '8123' \
+    --conn-login 'admin' \
+    --conn-password 'admin' \
+    --conn-schema 'ev_charging'
+
 echo "Connections setup completed!" 

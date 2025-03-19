@@ -3,4 +3,7 @@ python-dotenv==1.0.0
 requests==2.31.0
 apache-airflow-providers-apache-spark==4.1.4 
 lakefs-client>=0.91.0
-airflow-provider-lakefs>=0.48.0 
+clickhouse-connect>=0.6.8
+pyspark>=3.4.0 
+airflow-provider-lakefs
+pyfunctional

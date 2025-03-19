@@ -45,7 +45,6 @@ class ChargingSessionService:
                 event_type="start",
                 payload={
                     "timestamp": datetime.now().isoformat(),
-                    "battery_capacity": str(ev_battery_capacity)
                 }
             )
             
@@ -62,7 +61,7 @@ class ChargingSessionService:
                 session_number=session_number,
                 station_id=station_id,
                 ev_id=ev_id,
-                event_type="completion",
+                event_type="stop",
                 payload={
                     "timestamp": datetime.now().isoformat(),
                     "energy_delivered": str(random.uniform(10, ev_battery_capacity)),

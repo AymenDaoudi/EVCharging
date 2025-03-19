@@ -7,6 +7,7 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     build-essential \
     default-jdk \
+    wget \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -19,12 +20,19 @@ ENV LAKEFS_ENDPOINT=http://lakefs:8000
 ENV LAKEFS_ACCESS_KEY=AKIAJBWUDLDFGJY36X3Q
 ENV LAKEFS_SECRET_KEY=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
 
+# Download ClickHouse JDBC driver
+RUN mkdir -p /opt/airflow/jars && \
+    wget -O /opt/airflow/jars/clickhouse-jdbc-0.6.5-all.jar https://repo1.maven.org/maven2/com/clickhouse/clickhouse-jdbc/0.6.5/clickhouse-jdbc-0.6.5-all.jar
+
 # Copy requirements file and setup script
-COPY ./dags/example_spark_job.py /opt/airflow/spark/example_spark_job.py
-COPY ./dags/spark_job_dag.py /opt/airflow/spark/spark_job_dag.py
 COPY ./dags/extract_lake_fs/extract_lakefs_job.py /opt/airflow/spark/extract_lakefs_job.py
 COPY ./dags/extract_lake_fs/lakefs_sense_and_get_commit_operator.py /opt/airflow/spark/lakefs_sense_and_get_commit_operator.py
 COPY ./dags/extract_lake_fs/extract_lakefs_dag.py /opt/airflow/spark/extract_lakefs_dag.py
+COPY ./dags/extract_lake_fs/transform_data.py /opt/airflow/spark/transform_data.py
+
+COPY ./clickhouse/clickhouse_repository_base.py /opt/airflow/spark/clickhouse/clickhouse_repository_base.py
+COPY ./clickhouse/fact_charging_session_repository.py /opt/airflow/spark/clickhouse/fact_charging_session_repository.py
+
 COPY requirements.txt /requirements.txt
 COPY setup_connections.sh /setup_connections.sh
 

@@ -2,7 +2,7 @@ from typing import Any, Union
 
 from airflow.sensors.base import BaseSensorOperator
 from airflow.utils.decorators import apply_defaults
-from lakefs_provider.hooks.lakefs_hook import LakeFSHook
+from lakefs_provider.hooks.lakefs_hook import LakeFSHook # type: ignore
 
 class LakeFSSenseAndGetCommitOperator(BaseSensorOperator):
     """

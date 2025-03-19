@@ -8,9 +8,15 @@ This script is called by Airflow's SparkSubmitOperator and receives the commit_i
 
 import argparse, logging, os, sys
 import lakefs_client as lakefs
+from clickhouse_connect.driver.client import Client
 from pyspark.sql import SparkSession
 from lakefs_client.client import LakeFSClient
+from clickhouse.fact_charging_session_repository import FactChargingSessionRepository
+from transform_data import transform_data
+import clickhouse_connect
+from airflow.hooks.base import BaseHook
 
+# Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -19,6 +25,12 @@ BRANCH = os.getenv("LAKEFS_BRANCH", "main")
 LAKEFS_ENDPOINT = os.getenv("LAKEFS_ENDPOINT", "http://lakefs:8000")
 LAKEFS_ACCESS_KEY = os.getenv("LAKEFS_ACCESS_KEY", "AKIAJBWUDLDFGJY36X3Q")
 LAKEFS_SECRET_KEY = os.getenv("LAKEFS_SECRET_KEY", "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")
+# ClickHouse connection parameters
+CLICKHOUSE_HOST = os.getenv("CLICKHOUSE_HOST", "clickhouse")
+CLICKHOUSE_PORT = int(os.getenv("CLICKHOUSE_PORT", "8123"))
+CLICKHOUSE_USER = os.getenv("CLICKHOUSE_USER", "admin")
+CLICKHOUSE_PASSWORD = os.getenv("CLICKHOUSE_PASSWORD", "admin")
+CLICKHOUSE_DATABASE = os.getenv("CLICKHOUSE_DATABASE", "ev_charging")
 
 def parse_arguments():
     """Parse command line arguments."""
@@ -117,22 +129,10 @@ def get_lakefs_path(repository: str, commit_id: str, path: str):
     
     return lakefs_path
 
-def main():
-    """Main entry point for the Spark application."""
-    
-    check_java_installation()
-    
-    # Parse command line arguments
-    args = parse_arguments()
-    
-    # Log the arguments
-    logger.info(f"Starting LakeFS data transformation job")
-    logger.info(f"Repository: {args.repository}")
-    logger.info(f"Processing commit: {args.commit_id}")
-    
-    # Create Spark session
-    spark = create_spark_session()
-    
+def get_data_from_committed_file(
+    spark: SparkSession,
+    args: argparse.Namespace
+):
     try:
         # Create LakeFS client
         lakefs_client = get_lakefs_client(
@@ -168,24 +168,10 @@ def main():
                     logger.info(f"Attempting to read parquet file from: {lakefs_path}")
                     # Try to read the file
                     df = spark.read.parquet(lakefs_path)
+                    
                     logger.info(f"Successfully loaded parquet data from {lakefs_path}")
                     
-                    # Print the schema and a sample of the data
-                    logger.info(f"Data Schema for {file_path}:")
-                    df.printSchema()
-                    
-                    logger.info(f"Data Sample for {file_path}:")
-                    df.show(5, truncate=False)
-                    
-                    # Get row count
-                    row_count = df.count()
-                    logger.info(f"Total rows in {file_path}: {row_count}")
-                    
-                    # TODO: Add your transformation logic here
-                    # transformed_df = ...
-                    
-                    # TODO: Write the transformed data to the output location
-                    # transformed_df.write.mode("overwrite").parquet(output_path)
+                    return df
                     
                 except Exception as e:
                     logger.error(f"Error reading parquet data from {lakefs_path}: {str(e)}")
@@ -195,12 +181,57 @@ def main():
                 logger.error(f"Error processing file {file_path}: {str(e)}")
                 continue
         
-        logger.info("Transformation completed successfully!")
+        logger.info("Transformation and loading completed successfully!")
         
     except Exception as e:
         logger.error(f"Error processing data: {str(e)}")
         spark.stop()
         sys.exit(1)
+    
+def main():
+    """Main entry point for the Spark application."""
+    
+    check_java_installation()
+    
+    # Parse command line arguments
+    args = parse_arguments()
+    
+    # Log the arguments
+    logger.info(f"Starting LakeFS data transformation job")
+    logger.info(f"Repository: {args.repository}")
+    logger.info(f"Processing commit: {args.commit_id}")
+    
+    # Create Spark session
+    spark = create_spark_session()
+    
+    loaded_df = get_data_from_committed_file(spark, args)
+    
+    valid_sessions, invalid_sessions = transform_data(spark, loaded_df)
+
+    # Get ClickHouse connection from Airflow
+    clickhouse_conn = BaseHook.get_connection('clickhouse_conn')
+    
+    assert clickhouse_conn.host is not None
+    assert clickhouse_conn.port is not None
+    assert clickhouse_conn.login is not None
+    assert clickhouse_conn.password is not None
+    assert clickhouse_conn.schema is not None
+    
+    # Initialize ClickHouse client using Airflow connection
+    clickhouse_client = clickhouse_connect.get_client(
+        host=clickhouse_conn.host,
+        port=clickhouse_conn.port,
+        username=clickhouse_conn.login,
+        password=clickhouse_conn.password,
+        database=clickhouse_conn.schema
+    )
+    
+    logger.info("Loading valid sessions to ClickHouse...")
+    
+    fact_charging_session_repository = FactChargingSessionRepository(clickhouse_client)
+    fact_charging_session_repository.insert_fact_sessions_dataframe(spark, valid_sessions)
+
+    logger.info("Successfully loaded valid sessions to ClickHouse !")
     
     # Stop the Spark session
     spark.stop()

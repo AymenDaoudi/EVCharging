@@ -84,16 +84,6 @@ def ingest_charging_events_data(spark, schema):
     
     logger.info("Creating test DataFrame for S3AFileSystem test")
     
-    # Create a test DataFrame
-    test_schema = StructType([
-        StructField("event_type", StringType(), True),
-        StructField("session_id", StringType(), True),
-        StructField("session_number", IntegerType(), True),
-        StructField("station_id", StringType(), True),
-        StructField("ev_id", StringType(), True),
-        StructField("payload", StringType(), True)
-    ])
-    
     # Continue with the original Kafka streaming logic if needed
     logger.info("Reading from Kafka")
     # Read stream from Kafka

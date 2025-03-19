@@ -91,7 +91,8 @@ with DAG(
             'spark.hadoop.fs.s3a.aws.credentials.provider': 'org.apache.hadoop.fs.s3a.SimpleAWSCredentialsProvider',
             'spark.hadoop.fs.s3a.change.detection.mode': 'none',
             'spark.hadoop.fs.s3a.committer.magic.enabled': 'true',
-            'spark.jars.packages': 'org.apache.hadoop:hadoop-aws:3.3.4'
+            'spark.jars.packages': 'org.apache.hadoop:hadoop-aws:3.3.4',
+            'spark.jars': '/opt/airflow/jars/clickhouse-jdbc-0.6.5-all.jar'
         },
         verbose=True
     )

@@ -11,5 +11,5 @@ class ChargingMessage:
     station_id: str
     ev_id: str
     # TODO: Add disconnection, error, etc.
-    event_type: Literal["start", "completion"]
+    event_type: Literal["start", "stop"]
     payload: dict[str, Any]
