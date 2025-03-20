@@ -4,22 +4,31 @@ from pyspark.sql.functions import udf
 from pyspark.sql.types import IntegerType
 import logging
 from logging import Logger
-
+from clickhouse.clickhouse_config import ClickhouseConfig
 
 class ClickhouseRepositoryBase:
-    def __init__(self, clickhouse_client: Client):
-        self.__client = clickhouse_client
+    def __init__(self, clickhouse_conn: str):
+        self.__clickhouse_config = ClickhouseConfig(clickhouse_conn)
         # Configure logging
         logging.basicConfig(level=logging.INFO)
         self.__logger = logging.getLogger(self.__class__.__name__)
+        self.__jdbc_url = f"jdbc:clickhouse://{self.connection.host}:{self.connection.port}/{self.connection.schema}"
         
     @property
     def client(self) -> Client:
-        return self.__client
+        return self.__clickhouse_config.client
+    
+    @property
+    def connection(self):
+        return self.__clickhouse_config.connection
     
     @property
     def logger(self) -> Logger:
         return self.__logger
+    
+    @property
+    def jdbc_url(self):
+        return self.__jdbc_url
     
     def generate_time_id(self, dt: datetime) -> int:
         # Format: YYYYMMDDHH
@@ -29,7 +38,7 @@ class ClickhouseRepositoryBase:
         time_id = self.generate_time_id(dt)
         
         # Check if the time_id already exists
-        result = self.__client.query(f"SELECT 1 FROM dim_time WHERE time_id = {time_id}")
+        result = self.client.query(f"SELECT 1 FROM dim_time WHERE time_id = {time_id}")
         if result.result_rows:
             self.__logger.info(f"Time dimension record for time_id {time_id} already exists")
             return time_id
@@ -40,7 +49,7 @@ class ClickhouseRepositoryBase:
         # Simple holiday check (can be expanded with a proper holiday calendar)
         is_holiday = 0
         
-        self.__client.command(
+        self.client.command(
             """
             INSERT INTO dim_time (time_id, hour, day, month, year, day_of_week, is_weekend, is_holiday)
             VALUES (%(time_id)s, %(hour)s, %(day)s, %(month)s, %(year)s, %(day_of_week)s, %(is_weekend)s, %(is_holiday)s)

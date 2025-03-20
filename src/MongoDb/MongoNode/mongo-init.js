@@ -80,7 +80,6 @@ db.createUser({
 
 db.getSiblingDB(process.env.DB_NAME).auth(process.env.DB_USER, process.env.DB_PASS);
 
-db.createCollection("ChargingEvents");
 db.createCollection("ChargingStations");
 db.createCollection("ElectricVehicles");
 

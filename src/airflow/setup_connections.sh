@@ -8,9 +8,9 @@ sleep 30
 echo "Adding Spark connection..."
 airflow connections add 'spark_default' \
     --conn-type 'spark' \
-    --conn-host 'spark://spark-master' \
-    --conn-port '7077' \
-    --conn-extra '{"queue": "default"}'
+    --conn-host "${SPARK_HOST:-spark://spark-master}" \
+    --conn-port "${SPARK_PORT:-7077}" \
+    --conn-extra "{\"queue\": \"${SPARK_QUEUE:-default}\"}"
 
 # Add LakeFS connection
 echo "Adding LakeFS connection..."
@@ -24,10 +24,20 @@ airflow connections add 'lakefs_conn' \
 echo "Adding ClickHouse connection..."
 airflow connections add 'clickhouse_conn' \
     --conn-type 'http' \
-    --conn-host 'clickhouse' \
-    --conn-port '8123' \
-    --conn-login 'admin' \
-    --conn-password 'admin' \
-    --conn-schema 'ev_charging'
+    --conn-host "${CLICKHOUSE_HOST:-clickhouse}" \
+    --conn-port "${CLICKHOUSE_PORT:-8123}" \
+    --conn-login "${CLICKHOUSE_USER:-admin}" \
+    --conn-password "${CLICKHOUSE_PASSWORD:-admin}" \
+    --conn-schema "${CLICKHOUSE_DATABASE:-ev_charging}"
+
+# Add MongoDB connection
+echo "Adding MongoDB connection..."
+airflow connections add 'mongodb_conn' \
+    --conn-type 'mongo' \
+    --conn-host "${MONGO_HOST:-mongo-db}" \
+    --conn-port "${MONGO_PORT:-27017}" \
+    --conn-login "${MONGO_USER:-User}" \
+    --conn-password "${MONGO_PASSWORD:-Pass}" \
+    --conn-extra "{\"database\": \"${MONGO_DATABASE:-Db}\", \"electric_vehicles_collection\": \"${MONGO_ELECTRIC_VEHICLES_COLLECTION:-ElectricVehicles}\", \"charging_stations_collection\": \"${MONGO_CHARGING_STATIONS_COLLECTION:-ChargingStations}\"}"
 
 echo "Connections setup completed!" 

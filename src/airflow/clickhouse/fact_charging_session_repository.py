@@ -6,16 +6,10 @@ from datetime import datetime
 from pyspark.sql.functions import lit, col, udf
 from pyspark.sql.types import IntegerType
 from functional import seq
-# ClickHouse connection parameters
-CLICKHOUSE_HOST = os.getenv("CLICKHOUSE_HOST", "clickhouse")
-CLICKHOUSE_PORT = int(os.getenv("CLICKHOUSE_PORT", "8123"))
-CLICKHOUSE_USER = os.getenv("CLICKHOUSE_USER", "admin")
-CLICKHOUSE_PASSWORD = os.getenv("CLICKHOUSE_PASSWORD", "admin")
-CLICKHOUSE_DATABASE = os.getenv("CLICKHOUSE_DATABASE", "ev_charging")
 
 class FactChargingSessionRepository(ClickhouseRepositoryBase):
-    def __init__(self, clickhouse_client: Client):
-        super().__init__(clickhouse_client)
+    def __init__(self, clickhouse_conn: str):
+        super().__init__(clickhouse_conn)
         
     def insert_fact_sessions_dataframe(self, spark, sessions_df: DataFrame):
         try:
@@ -60,15 +54,15 @@ class FactChargingSessionRepository(ClickhouseRepositoryBase):
                 .map(lambda time_id: self.insert_time_dimension(datetime.strptime(str(time_id), "%Y%m%d%H"))) \
                 .to_list()
             
-            # Now write the sessions data
-            jdbc_url = f"jdbc:clickhouse://{CLICKHOUSE_HOST}:{CLICKHOUSE_PORT}/{CLICKHOUSE_DATABASE}"
+            # Now write the sessions data using Airflow connection settings
+            jdbc_url = f"jdbc:clickhouse://{self.connection.host}:{self.connection.port}/{self.connection.schema}"
             
             sessions_df.write \
                 .format("jdbc") \
                 .option("url", jdbc_url) \
                 .option("dbtable", "fact_charging_sessions") \
-                .option("user", CLICKHOUSE_USER) \
-                .option("password", CLICKHOUSE_PASSWORD) \
+                .option("user", self.connection.login) \
+                .option("password", self.connection.password) \
                 .option("driver", "com.clickhouse.jdbc.ClickHouseDriver") \
                 .option("batchsize", 10000) \
                 .mode("append") \

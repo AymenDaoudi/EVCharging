@@ -15,23 +15,61 @@ RUN apt-get update && \
 ENV JAVA_HOME=/usr/lib/jvm/default-java
 ENV PATH=$PATH:$JAVA_HOME/bin
 
+# Add spark directory to Python path
+ENV PYTHONPATH=/opt/airflow/spark:$PYTHONPATH
+
 # Set lakeFS environment variables
 ENV LAKEFS_ENDPOINT=http://lakefs:8000
 ENV LAKEFS_ACCESS_KEY=AKIAJBWUDLDFGJY36X3Q
 ENV LAKEFS_SECRET_KEY=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
 
+# Set ClickHouse environment variables
+ENV CLICKHOUSE_HOST=clickhouse
+ENV CLICKHOUSE_PORT=8123
+ENV CLICKHOUSE_USER=admin
+ENV CLICKHOUSE_PASSWORD=admin
+ENV CLICKHOUSE_DATABASE=ev_charging
+
+# Set MongoDB environment variables
+ENV MONGO_HOST=mongo-db
+ENV MONGO_PORT=27017
+ENV MONGO_USER=User
+ENV MONGO_PASSWORD=Pass
+ENV MONGO_DATABASE=Db
+ENV MONGO_ELECTRIC_VEHICLES_COLLECTION=ElectricVehicles
+ENV MONGO_CHARGING_STATIONS_COLLECTION=ChargingStations
+
+# Set Spark environment variables
+ENV SPARK_HOST=spark://spark-master
+ENV SPARK_PORT=7077
+ENV SPARK_QUEUE=default
+
 # Download ClickHouse JDBC driver
 RUN mkdir -p /opt/airflow/jars && \
-    wget -O /opt/airflow/jars/clickhouse-jdbc-0.6.5-all.jar https://repo1.maven.org/maven2/com/clickhouse/clickhouse-jdbc/0.6.5/clickhouse-jdbc-0.6.5-all.jar
+    wget -O /opt/airflow/jars/clickhouse-jdbc-0.6.5-all.jar https://repo1.maven.org/maven2/com/clickhouse/clickhouse-jdbc/0.6.5/clickhouse-jdbc-0.6.5-all.jar && \
+    wget -O /opt/airflow/jars/mongo-spark-connector_2.12-3.0.1.jar https://repo1.maven.org/maven2/org/mongodb/spark/mongo-spark-connector_2.12/3.0.1/mongo-spark-connector_2.12-3.0.1.jar
 
 # Copy requirements file and setup script
-COPY ./dags/extract_lake_fs/extract_lakefs_job.py /opt/airflow/spark/extract_lakefs_job.py
-COPY ./dags/extract_lake_fs/lakefs_sense_and_get_commit_operator.py /opt/airflow/spark/lakefs_sense_and_get_commit_operator.py
-COPY ./dags/extract_lake_fs/extract_lakefs_dag.py /opt/airflow/spark/extract_lakefs_dag.py
-COPY ./dags/extract_lake_fs/transform_data.py /opt/airflow/spark/transform_data.py
+COPY ./dags/lake_fs/charging_sessions/etl_charging_sessions_dag.py /opt/airflow/spark/etl_charging_sessions_dag.py
+COPY ./dags/lake_fs/charging_sessions/etl_charging_session_job.py /opt/airflow/spark/etl_charging_session_job.py
 
+COPY ./dags/lake_fs/lakefs_sense_and_get_commit_operator.py /opt/airflow/spark/lakefs_sense_and_get_commit_operator.py
+COPY ./dags/lake_fs/charging_sessions/transform_charging_sessions.py /opt/airflow/spark/transform_charging_sessions.py
+
+COPY ./dags/mongo_db/vehicles/etl_vehicles_dag.py /opt/airflow/spark/etl_vehicles_dag.py
+COPY ./dags/mongo_db/vehicles/etl_vehicles_job.py /opt/airflow/spark/etl_vehicles_job.py
+
+COPY ./dags/mongo_db/stations/etl_stations_dag.py /opt/airflow/spark/etl_stations_dag.py
+COPY ./dags/mongo_db/stations/etl_stations_job.py /opt/airflow/spark/etl_stations_job.py
+
+COPY ./dags/spark_job_base.py /opt/airflow/spark/spark_job_base.py
+
+COPY ./mongodb/mongo_spark_repository.py /opt/airflow/spark/mongodb/mongo_spark_repository.py
+COPY ./clickhouse/clickhouse_config.py /opt/airflow/spark/clickhouse/clickhouse_config.py
 COPY ./clickhouse/clickhouse_repository_base.py /opt/airflow/spark/clickhouse/clickhouse_repository_base.py
 COPY ./clickhouse/fact_charging_session_repository.py /opt/airflow/spark/clickhouse/fact_charging_session_repository.py
+COPY ./clickhouse/dim_vehicles_repository.py /opt/airflow/spark/clickhouse/dim_vehicles_repository.py
+COPY ./clickhouse/dim_stations_repository.py /opt/airflow/spark/clickhouse/dim_stations_repository.py
 
 COPY requirements.txt /requirements.txt
 COPY setup_connections.sh /setup_connections.sh

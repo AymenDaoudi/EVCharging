@@ -24,11 +24,12 @@ ORDER BY time_id;
 CREATE TABLE IF NOT EXISTS dim_station
 (
     id UUID,
+    station_name String,
     latitude Float32,
     longitude Float32,
     address String,
     charger_type String,
-    cost Decimal(10, 2),
+    costPerKwh Decimal(10, 2),
     distance_to_city Float32,
     operator String,
     charging_capacity UInt32,
@@ -36,7 +37,8 @@ CREATE TABLE IF NOT EXISTS dim_station
     installation_year UInt32,
     renewable_energy_source Boolean,
     rating Float32,
-    maintenance_frequency String
+    maintenance_frequency String,
+    parking_spot UInt32
 ) ENGINE = MergeTree()
 ORDER BY id;
 
@@ -49,7 +51,8 @@ CREATE TABLE IF NOT EXISTS dim_vehicle
     fast_charge UInt32,
     range UInt32,
     top_speed UInt32,
-    acceleration_0_100 UInt32
+    acceleration_0_100 UInt32,
+    battery_capacity Float32
 ) ENGINE = MergeTree()
 ORDER BY id;
 
@@ -75,11 +78,12 @@ SELECT
     f.energy_delivered,
     f.duration_minutes,
     f.station_id,
+    s.station_name,
     s.latitude AS station_latitude,
     s.longitude AS station_longitude,
     s.address AS station_address,
     s.charger_type,
-    s.cost AS charging_cost,
+    s.costPerKwh AS charging_cost,
     s.distance_to_city,
     s.operator AS station_operator,
     s.charging_capacity,

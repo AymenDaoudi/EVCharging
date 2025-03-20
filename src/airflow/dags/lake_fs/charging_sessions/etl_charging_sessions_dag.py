@@ -2,7 +2,7 @@ import os, logging
 from datetime import datetime, timedelta
 from airflow import DAG
 from airflow.providers.apache.spark.operators.spark_submit import SparkSubmitOperator
-from extract_lake_fs.lakefs_sense_and_get_commit_operator import LakeFSSenseAndGetCommitOperator
+from lake_fs.lakefs_sense_and_get_commit_operator import LakeFSSenseAndGetCommitOperator
 
 REPOSITORY = os.getenv("LAKEFS_REPOSITORY", "charging-data")
 BRANCH = os.getenv("LAKEFS_BRANCH", "main")
@@ -21,28 +21,6 @@ default_args = {
     'branch': BRANCH,
     'default-branch': BRANCH
 }
-
-# Downstream task: process the commit details pulled from XCom
-def process_commit(**kwargs):
-    # Get the task instance from kwargs
-    ti = kwargs['ti']
-    commit_details = ti.xcom_pull(task_ids='sense_commit')
-    
-    logging.info(f'there was {len(commit_details.items())}')
-    logging.info(f"Print Commit details keys")
-    for key in commit_details.keys():
-        logging.info(f"KEY: {key}")
-    
-    logging.info(f"Print Commit details")
-    
-    if not commit_details:
-        raise ValueError("No commit details found in XCom.")
-    
-    for key, value in commit_details.items():
-        logging.info(f"FOR KEY: {key}, THERE IS VALUE: {value}")
-    
-    logging.info(f"Detected Commit ID: {commit_details.get('id')}")
-    # Here, you could also trigger further processing, like a Spark job
 
 with DAG(
     'lakefs_extract_dag',
