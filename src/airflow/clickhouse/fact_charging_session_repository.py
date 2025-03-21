@@ -43,6 +43,10 @@ class FactChargingSessionRepository(ClickhouseRepositoryBase):
             total_sessions = sessions_df.count()
             self.logger.info(f"Preparing to write {total_sessions} sessions to ClickHouse")
             
+            # Debug: Print schema and check for duplicate columns
+            self.logger.info("DataFrame Schema:")
+            self.logger.info(sessions_df.schema)
+                        
             # insert time dimension
             unique_time_ids = sessions_df.select("start_time_id", "end_time_id") \
                 .distinct() \
@@ -54,12 +58,9 @@ class FactChargingSessionRepository(ClickhouseRepositoryBase):
                 .map(lambda time_id: self.insert_time_dimension(datetime.strptime(str(time_id), "%Y%m%d%H"))) \
                 .to_list()
             
-            # Now write the sessions data using Airflow connection settings
-            jdbc_url = f"jdbc:clickhouse://{self.connection.host}:{self.connection.port}/{self.connection.schema}"
-            
             sessions_df.write \
                 .format("jdbc") \
-                .option("url", jdbc_url) \
+                .option("url", self.jdbc_url) \
                 .option("dbtable", "fact_charging_sessions") \
                 .option("user", self.connection.login) \
                 .option("password", self.connection.password) \

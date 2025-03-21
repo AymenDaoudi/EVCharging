@@ -20,12 +20,9 @@ def transform_data(spark, df):
     )
     
     # Group by session_id and count the number of events per session
-    session_groupings = df_with_payload.groupBy("session_id", "station_id", "ev_id").agg(
+    session_groupings = df_with_payload.groupBy("session_id", "station_id", "vehicle_id").agg(
         count("*").alias("sessions_count"),
         # Include other relevant session information
-        col("session_id").alias("session_id"),
-        col("station_id").alias("station_id"),
-        col("ev_id").alias("ev_id"),
         max(col("start_time")).alias("start_time"),
         max(col("stop_time")).alias("stop_time"),
         max(col("energy_delivered")).alias("energy_delivered"),

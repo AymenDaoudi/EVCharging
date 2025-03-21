@@ -65,7 +65,7 @@ CREATE TABLE IF NOT EXISTS fact_charging_sessions
     start_time_id UInt32,
     end_time_id UInt32,
     energy_delivered Float32,
-    duration_minutes UInt32
+    duration_minutes Float32
 ) ENGINE = MergeTree()
 ORDER BY (session_id);
 

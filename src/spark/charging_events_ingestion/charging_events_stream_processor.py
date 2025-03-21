@@ -105,13 +105,13 @@ def ingest_charging_events_data(spark, schema):
         col("data.session_id").alias("session_id"),
         col("data.session_number").alias("session_number"),
         col("data.station_id").alias("station_id"),
-        col("data.ev_id").alias("ev_id"),
+        col("data.ev_id").alias("vehicle_id"),
         col("data.payload").alias("payload")
     )
 
     logger.info("Successfully connected to Kafka topic")
     
-    # Write to Azure Blob Storage
+    # Write to LakeFS
     blob_query = df.writeStream \
         .foreachBatch(process_batch) \
         .trigger(processingTime='5 seconds') \

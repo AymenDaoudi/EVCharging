@@ -28,8 +28,9 @@ with DAG(
     dag_display_name='LakeFS Extract Data',
     description='Detects merges to the main branch of the lakeFS repo, and extracts the merged data.',
     schedule_interval=timedelta(seconds=20),
-    start_date=datetime(2023, 1, 1),
+    start_date=datetime(2024, 1, 1),
     catchup=False,
+    is_paused_upon_creation=True,
     tags=['extract', 'lakefs'],
 ) as dag:
     
@@ -47,7 +48,7 @@ with DAG(
         task_id='Extract_data_from_lakefs',
         name='Extract data from lakeFS',
         conn_id='spark_default',
-        application='/opt/airflow/spark/extract_lakefs_job.py',
+        application='/opt/airflow/spark/etl_charging_sessions_job.py',
         application_args=[
             '--commit_id', "{{ task_instance.xcom_pull(task_ids='Sense_merges_to_LakeFS_main_branch').get('id') }}",
             '--repository', default_args['repo'],
@@ -69,8 +70,10 @@ with DAG(
             'spark.hadoop.fs.s3a.aws.credentials.provider': 'org.apache.hadoop.fs.s3a.SimpleAWSCredentialsProvider',
             'spark.hadoop.fs.s3a.change.detection.mode': 'none',
             'spark.hadoop.fs.s3a.committer.magic.enabled': 'true',
-            'spark.jars.packages': 'org.apache.hadoop:hadoop-aws:3.3.4',
-            'spark.jars': '/opt/airflow/jars/clickhouse-jdbc-0.6.5-all.jar'
+            'spark.jars.packages': 'org.apache.hadoop:hadoop-aws:3.3.4,com.clickhouse:clickhouse-jdbc:0.6.5,org.apache.httpcomponents.client5:httpclient5:5.2.1',
+            # 'spark.driver.extraClassPath': '/opt/airflow/jars/*',
+            # 'spark.executor.extraClassPath': '/opt/airflow/jars/*',
+            # 'spark.jars': '/opt/airflow/jars/*'
         },
         verbose=True
     )

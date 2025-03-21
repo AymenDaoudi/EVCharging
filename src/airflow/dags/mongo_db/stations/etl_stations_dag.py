@@ -19,7 +19,7 @@ with DAG(
     start_date=datetime(2024,1,1),
     catchup=False,
     schedule_interval='@once',
-    is_paused_upon_creation=False,
+    is_paused_upon_creation=True,
     tags=['extract', 'mongodb', 'charging_stations']
 ) as dag:
     
@@ -35,6 +35,9 @@ with DAG(
             'spark.executor.cores': '1',
             'spark.driver.cores': '1',
             'spark.jars.packages': 'org.mongodb.spark:mongo-spark-connector_2.12:3.0.1,com.clickhouse:clickhouse-jdbc:0.6.5,org.apache.httpcomponents.client5:httpclient5:5.2.1'
+            # 'spark.driver.extraClassPath': '/opt/airflow/jars/*',
+            # 'spark.executor.extraClassPath': '/opt/airflow/jars/*',
+            # 'spark.jars': '/opt/airflow/jars/*'
         },
         verbose=True
     )

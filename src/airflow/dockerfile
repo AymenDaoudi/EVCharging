@@ -2,12 +2,12 @@ FROM apache/airflow:latest-python3.12
 
 USER root
 
-# Install system dependencies if needed
+# Install system dependencies including Maven
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     build-essential \
     default-jdk \
-    wget \
+    maven \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -44,23 +44,31 @@ ENV SPARK_HOST=spark://spark-master
 ENV SPARK_PORT=7077
 ENV SPARK_QUEUE=default
 
-# Download ClickHouse JDBC driver
-RUN mkdir -p /opt/airflow/jars && \
-    wget -O /opt/airflow/jars/clickhouse-jdbc-0.6.5-all.jar https://repo1.maven.org/maven2/com/clickhouse/clickhouse-jdbc/0.6.5/clickhouse-jdbc-0.6.5-all.jar && \
-    wget -O /opt/airflow/jars/mongo-spark-connector_2.12-3.0.1.jar https://repo1.maven.org/maven2/org/mongodb/spark/mongo-spark-connector_2.12/3.0.1/mongo-spark-connector_2.12-3.0.1.jar
+# Create directories
+RUN mkdir -p /opt/airflow/jars
 
-# Copy requirements file and setup script
+# # Copy Maven project files
+# COPY pom.xml /tmp/pom.xml
+
+# # Download dependencies using Maven and list them
+# RUN cd /tmp && \
+#     mvn dependency:copy-dependencies -DoutputDirectory=/opt/airflow/jars && \
+#     echo "Downloaded JARs:" && \
+#     ls -la /opt/airflow/jars && \
+#     rm -rf /tmp/pom.xml /root/.m2
+
+# Copy Python files
 COPY ./dags/lake_fs/charging_sessions/etl_charging_sessions_dag.py /opt/airflow/spark/etl_charging_sessions_dag.py
-COPY ./dags/lake_fs/charging_sessions/etl_charging_session_job.py /opt/airflow/spark/etl_charging_session_job.py
+COPY ./dags/lake_fs/charging_sessions/etl_charging_sessions_job.py /opt/airflow/spark/etl_charging_sessions_job.py
 
-COPY ./dags/lake_fs/lakefs_sense_and_get_commit_operator.py /opt/airflow/spark/lakefs_sense_and_get_commit_operator.py
-COPY ./dags/lake_fs/charging_sessions/transform_charging_sessions.py /opt/airflow/spark/transform_charging_sessions.py
+COPY ./dags/mongo_db/stations/etl_stations_dag.py /opt/airflow/spark/etl_stations_dag.py
+COPY ./dags/mongo_db/stations/etl_stations_job.py /opt/airflow/spark/etl_stations_job.py
 
 COPY ./dags/mongo_db/vehicles/etl_vehicles_dag.py /opt/airflow/spark/etl_vehicles_dag.py
 COPY ./dags/mongo_db/vehicles/etl_vehicles_job.py /opt/airflow/spark/etl_vehicles_job.py
 
-COPY ./dags/mongo_db/stations/etl_stations_dag.py /opt/airflow/spark/etl_stations_dag.py
-COPY ./dags/mongo_db/stations/etl_stations_job.py /opt/airflow/spark/etl_stations_job.py
+COPY ./dags/lake_fs/lakefs_sense_and_get_commit_operator.py /opt/airflow/spark/lakefs_sense_and_get_commit_operator.py
+COPY ./dags/lake_fs/charging_sessions/transform_charging_sessions.py /opt/airflow/spark/transform_charging_sessions.py
 
 COPY ./dags/spark_job_base.py /opt/airflow/spark/spark_job_base.py
 
