@@ -48,7 +48,7 @@ with DAG(
         task_id='Extract_data_from_lakefs',
         name='Extract data from lakeFS',
         conn_id='spark_default',
-        application='/opt/airflow/spark/etl_charging_sessions_job.py',
+        application='/opt/airflow/dags/lake_fs/charging_sessions/etl_charging_sessions_job.py',
         application_args=[
             '--commit_id', "{{ task_instance.xcom_pull(task_ids='Sense_merges_to_LakeFS_main_branch').get('id') }}",
             '--repository', default_args['repo'],

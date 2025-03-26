@@ -7,18 +7,10 @@ ENV CHARGING_EVENTS_TOPIC=ev_charging_events
 ENV MONGO_URI=mongodb://User:Pass@mongo-db:27017/Db
 
 # Add the app directory to Python path
-ENV PYTHONPATH=/app
+ENV PYTHONPATH=/src
 
-# Working directory inside the container
-WORKDIR /app
-
-# Copy your application code
-COPY ./app ./app
-COPY ./services ./services
-COPY ./repositories ./repositories
-COPY ./entities ./entities
-
-RUN pip install -r ./app/requirements.txt
+COPY ./src/requirements.txt /requirements.txt
+RUN pip install -r /requirements.txt
 
 # Set the entrypoint / default command to run
-CMD ["python", "app/main.py"]
+CMD ["python", "src/app/main.py"]

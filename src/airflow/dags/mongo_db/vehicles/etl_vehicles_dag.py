@@ -27,7 +27,7 @@ with DAG(
         task_id='extract_vehicles_from_mongodb',
         name='Extract vehicles data from MongoDB',
         conn_id='spark_default',
-        application='/opt/airflow/spark/etl_vehicles_job.py',
+        application='/opt/airflow/dags/mongo_db/vehicles/etl_vehicles_job.py',
         conf={
             'spark.master': 'spark://spark-master:7077',
             'spark.driver.memory': '1g',

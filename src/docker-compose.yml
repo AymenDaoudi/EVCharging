@@ -25,31 +25,30 @@ services:
       timeout: 20s
       retries: 3
     volumes:
-      - mongodb_data:/data/db
       - ./MongoDb/Data:/data
     networks:
       - localnet
 
-  # mongo-express:
-  #   build:
-  #     context: ./MongoDb/MongoExpress
-  #     dockerfile: dockerfile
-  #   container_name: db-explorer
-  #   environment:
-  #     - ME_CONFIG_MONGODB_SERVER=mongo-db
-  #     - ME_CONFIG_MONGODB_PORT=27017
-  #     - ME_CONFIG_MONGODB_ADMINUSERNAME=admin
-  #     - ME_CONFIG_MONGODB_ADMINPASSWORD=admin
-  #     - ME_CONFIG_BASICAUTH_USERNAME=admin
-  #     - ME_CONFIG_BASICAUTH_PASSWORD=admin
-  #     - PORT=8082
-  #   ports:
-  #     - 8085:8082
-  #   depends_on:
-  #     mongo-db:
-  #       condition: service_healthy
-  #   networks:
-  #     - localnet
+  mongo-express:
+    build:
+      context: ./MongoDb/MongoExpress
+      dockerfile: dockerfile
+    container_name: db-explorer
+    environment:
+      - ME_CONFIG_MONGODB_SERVER=mongo-db
+      - ME_CONFIG_MONGODB_PORT=27017
+      - ME_CONFIG_MONGODB_ADMINUSERNAME=admin
+      - ME_CONFIG_MONGODB_ADMINPASSWORD=admin
+      - ME_CONFIG_BASICAUTH_USERNAME=admin
+      - ME_CONFIG_BASICAUTH_PASSWORD=admin
+      - PORT=8082
+    ports:
+      - 8085:8082
+    depends_on:
+      mongo-db:
+        condition: service_healthy
+    networks:
+      - localnet
 
   zookeeper:
     image: confluentinc/cp-zookeeper:latest
@@ -90,20 +89,20 @@ services:
     networks:
       - localnet
 
-  # control-center:
-  #   image: confluentinc/cp-enterprise-control-center:latest
-  #   hostname: control-center
-  #   container_name: control-center
-  #   depends_on:
-  #     kafka:
-  #       condition: service_healthy
-  #   ports:
-  #     - "9021:9021"
-  #   restart: always
-  #   env_file:
-  #     - path: ./Kafka/kafka-control-center/.env
-  #   networks:
-  #     - localnet
+  control-center:
+    image: confluentinc/cp-enterprise-control-center:latest
+    hostname: control-center
+    container_name: control-center
+    depends_on:
+      kafka:
+        condition: service_healthy
+    ports:
+      - "9021:9021"
+    restart: always
+    env_file:
+      - path: ./Kafka/kafka-control-center/.env
+    networks:
+      - localnet
 
   charging-stations:
     build:
@@ -119,6 +118,8 @@ services:
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       CHARGING_EVENTS_TOPIC: ev_charging_events
       MONGO_URI: mongodb://User:Pass@mongo-db:27017/Db
+    volumes:
+      - ./ev_charging_simulator/src:/src
     networks:
       - localnet
 
@@ -149,18 +150,6 @@ services:
       - "8081:8081"  # Spark Worker Web UI
     networks:
       - localnet
-
-  # spark-worker-2:
-  #   build:
-  #     context: ./spark
-  #     dockerfile: dockerfile_worker
-  #   container_name: spark-worker-2
-  #   depends_on:
-  #     - spark-master
-  #   ports:
-  #     - "8082:8082"  # Spark Worker Web UI
-  #   networks:
-  #     - localnet
 
   minio:
     image: minio/minio:latest
@@ -235,8 +224,6 @@ services:
       - CLICKHOUSE_PASSWORD=admin
       - CLICKHOUSE_DB=ev_charging
     volumes:
-      - clickhouse_data:/var/lib/clickhouse
-      - clickhouse_logs:/var/log/clickhouse-server
       - ./clickhouse/config:/etc/clickhouse-server/config.d
       - ./clickhouse/init:/docker-entrypoint-initdb.d
     healthcheck:
@@ -271,8 +258,6 @@ services:
       - POSTGRES_DB=airflow
     ports:
       - "5432:5432"
-    volumes:
-      - airflow_postgres_data:/var/lib/postgresql/data
     networks:
       - localnet
     healthcheck:
@@ -283,7 +268,7 @@ services:
   airflow-webserver:
     build:
       context: ./airflow
-      dockerfile: Dockerfile
+      dockerfile: dockerfile
     container_name: airflow-webserver
     depends_on:
       airflow-postgres:
@@ -309,6 +294,8 @@ services:
       - CLICKHOUSE_DATABASE=ev_charging
     volumes:
       - ./airflow/dags:/opt/airflow/dags
+      - ./airflow/clickhouse:/opt/airflow/clickhouse
+      - ./airflow/mongodb:/opt/airflow/mongodb
       - airflow_logs:/opt/airflow/logs
     ports:
       - "8090:8080"
@@ -331,7 +318,7 @@ services:
   airflow-scheduler:
     build:
       context: ./airflow
-      dockerfile: Dockerfile
+      dockerfile: dockerfile
     container_name: airflow-scheduler
     depends_on:
       airflow-webserver:
@@ -350,6 +337,8 @@ services:
       - CLICKHOUSE_DATABASE=ev_charging
     volumes:
       - ./airflow/dags:/opt/airflow/dags
+      - ./airflow/clickhouse:/opt/airflow/clickhouse
+      - ./airflow/mongodb:/opt/airflow/mongodb
       - airflow_logs:/opt/airflow/logs
     command: airflow scheduler
     restart: always
@@ -361,8 +350,4 @@ networks:
     driver: bridge
 
 volumes:
-  mongodb_data:
-  clickhouse_data:
-  clickhouse_logs:
-  airflow_postgres_data:
   airflow_logs:

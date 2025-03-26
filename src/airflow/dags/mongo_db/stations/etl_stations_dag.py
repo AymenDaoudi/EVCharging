@@ -27,7 +27,7 @@ with DAG(
         task_id='extract_stations_from_mongodb',
         name='Extract stations data from MongoDB',
         conn_id='spark_default',
-        application='/opt/airflow/spark/etl_stations_job.py',
+        application='/opt/airflow/dags/mongo_db/stations/etl_stations_job.py',
         conf={
             'spark.master': 'spark://spark-master:7077',
             'spark.driver.memory': '1g',
@@ -35,9 +35,6 @@ with DAG(
             'spark.executor.cores': '1',
             'spark.driver.cores': '1',
             'spark.jars.packages': 'org.mongodb.spark:mongo-spark-connector_2.12:3.0.1,com.clickhouse:clickhouse-jdbc:0.6.5,org.apache.httpcomponents.client5:httpclient5:5.2.1'
-            # 'spark.driver.extraClassPath': '/opt/airflow/jars/*',
-            # 'spark.executor.extraClassPath': '/opt/airflow/jars/*',
-            # 'spark.jars': '/opt/airflow/jars/*'
         },
         verbose=True
     )
