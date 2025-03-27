@@ -115,6 +115,7 @@ services:
         condition: service_healthy
     environment:
       SIM_DURATION: 100.0
+      CHARGING_STATIONS_TO_USE: 10
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       CHARGING_EVENTS_TOPIC: ev_charging_events
       MONGO_URI: mongodb://User:Pass@mongo-db:27017/Db
@@ -192,11 +193,6 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - LAKECTL_SERVER_ENDPOINT_URL=http://localhost:8000
-      - LAKEFS_AUTH_ENCRYPT_SECRET_KEY=some-random-secret-string
-      - LAKEFS_DATABASE_TYPE=local
-      - LAKEFS_BLOCKSTORE_TYPE=s3
-      - LAKEFS_BLOCKSTORE_S3_FORCE_PATH_STYLE=true
       - LAKEFS_AUTH_USER_NAME=admin
       - LAKEFS_AUTH_USER_EMAIL=iaymendaoudidev@gmail.com
       - LAKEFS_AUTH_USER_PASSWORD=pass
@@ -207,6 +203,8 @@ services:
       - LAKEFS_INSTALLATION_SECRET_ACCESS_KEY=sYAuql0Go9qOOQlQNPEw5Cg2AOzLZebnKgMaVyF+
       - LAKECTL_CREDENTIALS_ACCESS_KEY_ID=AKIAJBWUDLDFGJY36X3Q
       - LAKECTL_CREDENTIALS_SECRET_ACCESS_KEY=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
+      - LAKEFS_BLOCKSTORE_S3_CREDENTIALS_ACCESS_KEY_ID=minioadmin
+      - LAKEFS_BLOCKSTORE_S3_CREDENTIALS_SECRET_ACCESS_KEY=minioadmin
     depends_on:
       minio:
         condition: service_healthy

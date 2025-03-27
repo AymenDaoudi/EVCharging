@@ -7,8 +7,8 @@ from repositories.kafka_repositories.kafka_repository import KafkaRepository
 from services.charging_session_service import ChargingSessionService
 from services.simulation_service import SimulationService
 
-KAFKA_BOOTSTRAP_SERVERS = os.environ.get("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
-MONGO_URI = os.environ.get("MONGO_URI", "mongodb://localhost:27017/")
+KAFKA_BOOTSTRAP_SERVERS = os.environ.get("KAFKA_BOOTSTRAP_SERVERS", "kafka:29092")
+MONGO_URI = os.environ.get("MONGO_URI", "mongodb://User:Pass@mongo-db:27017/Db")
 
 def main():
     
